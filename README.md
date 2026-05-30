@@ -1,4 +1,4 @@
-# Plataforma Agnóstica para la Comercialización y Certificación Segura de Agentes de IA 🚀
+# Plataforma Agnóstica para la Comercialización y Certificación Segura de Agentes de IA 
 
 ## E.T.S. de Ingeniería Informática — Universidad de Málaga
 * **Autor:** Jaime Garfia Aragón
