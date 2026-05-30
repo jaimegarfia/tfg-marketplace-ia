@@ -1,6 +1,6 @@
 import { Boxes, FileCode2, Fingerprint } from "lucide-react";
 import type { Agente } from "@/types/database";
-import { etiquetaTipoActivo, formatearPrecio } from "@/lib/mock-data";
+import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
 import { AuditBadge } from "@/components/audit-badge";
 
 interface AgentCardProps {

@@ -32,6 +32,12 @@ export type EstadoPago = "pendiente" | "completado" | "fallido";
 
 export type ResultadoAuditoria = "aprobado" | "rechazado" | "advertencia";
 
+export type EstadoProcesoFineTuning =
+  | "solicitado"
+  | "en_desarrollo"
+  | "entregado"
+  | "disputa";
+
 // ----------------------------------------------------------------------------
 // Estructuras auxiliares almacenadas como JSONB
 // ----------------------------------------------------------------------------
@@ -80,6 +86,17 @@ export interface Agente {
   created_at: string;
 }
 
+/** Agente enriquecido con datos de auditoría para el panel de inspección. */
+export interface AgenteConAuditoria extends Agente {
+  auditoria: {
+    resultado_global: ResultadoAuditoria;
+    logs_sandbox: string;
+    vulnerabilidades_detectadas: Vulnerabilidad[];
+    permisos_aprobados: PermisoAprobado[];
+    fecha_ejecucion: string;
+  } | null;
+}
+
 /** Tabla `auditoria`. */
 export interface Auditoria {
   id: string;
@@ -99,4 +116,13 @@ export interface Transaccion {
   stripe_payment_intent_id: string;
   estado_pago: EstadoPago;
   created_at: string;
+}
+
+/** Tabla `servicios_fine_tuning`. */
+export interface ServicioFineTuning {
+  id: string;
+  transaccion_id: string;
+  contexto_privado_desc: string;
+  estado_proceso: EstadoProcesoFineTuning;
+  updated_at: string;
 }
