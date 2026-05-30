@@ -4,7 +4,7 @@
 * **Autor:** Jaime Garfia Aragón
 * **Tutor:** Antonio Maña Gómez
 * **Departamento:** Lenguajes y Ciencias de la Computación
-* **Convocatoria / Deadline:** Junio 2026
+* **Convocatoria:** Junio 2026
 
 ---
 
