@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import {
   X,
   ShieldCheck,
@@ -19,6 +19,7 @@ import type {
   Vulnerabilidad,
 } from "@/types/database";
 import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
+import { useMockAuth } from "@/context/mock-auth-context";
 
 /* ── Visual mappings ────────────────────────────────────────────────── */
 
@@ -162,6 +163,11 @@ interface AgentDrawerProps {
 }
 
 export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
+  const { user, openAuthModal } = useMockAuth();
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -179,6 +185,42 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
       document.body.style.overflow = "";
     };
   }, [agente, handleEscape]);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) {
+        clearTimeout(toastTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showToast = useCallback((message: string) => {
+    if (toastTimerRef.current) {
+      clearTimeout(toastTimerRef.current);
+    }
+    setToastMessage(message);
+    toastTimerRef.current = setTimeout(() => {
+      setToastMessage(null);
+    }, 2600);
+  }, []);
+
+  const handleAcquire = useCallback(async () => {
+    // Guard de autenticación: si es anónimo, abre modal de identidad.
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
+    try {
+      setIsProcessing(true);
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 900);
+      });
+      showToast("Transacción simulada registrada correctamente.");
+    } finally {
+      setIsProcessing(false);
+    }
+  }, [openAuthModal, showToast, user]);
 
   if (!agente) return null;
 
@@ -351,17 +393,27 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
         <div className="border-t border-neutral-800/60 px-6 py-5">
           <button
             type="button"
+            onClick={handleAcquire}
+            disabled={isProcessing}
             className="
               flex w-full items-center justify-center gap-2 rounded-lg
               bg-neutral-100 px-5 py-3 text-sm font-medium text-neutral-900
               transition-all duration-200 hover:bg-white
-              active:scale-[0.98]
+              active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60
             "
           >
-            {isFree ? (
+            {isProcessing ? (
+              <>
+                <span
+                  className="h-3.5 w-3.5 animate-spin rounded-full border border-neutral-700 border-t-transparent"
+                  aria-hidden="true"
+                />
+                Procesando...
+              </>
+            ) : isFree ? (
               <>
                 <Download size={15} strokeWidth={1.5} aria-hidden="true" />
-                Descargar Manifesto
+                Adquirir activo — Gratis
               </>
             ) : (
               <>
@@ -370,6 +422,15 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
               </>
             )}
           </button>
+
+          {toastMessage && (
+            <p
+              role="status"
+              className="mt-3 rounded-lg border border-emerald-400/20 bg-emerald-400/10 px-3 py-2 text-xs text-emerald-300/90"
+            >
+              {toastMessage}
+            </p>
+          )}
         </div>
       </aside>
     </div>

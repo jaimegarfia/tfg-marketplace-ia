@@ -1,8 +1,24 @@
 "use client";
 
 import { Receipt, User } from "lucide-react";
+import { useMockAuth } from "@/context/mock-auth-context";
 
 export function UserNav() {
+  const { user, openAuthModal } = useMockAuth();
+
+  if (!user) {
+    return (
+      <button
+        type="button"
+        onClick={openAuthModal}
+        className="inline-flex items-center gap-2 rounded-full border border-neutral-800/80 bg-neutral-900/40 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-neutral-700 hover:text-neutral-100"
+      >
+        <User size={14} strokeWidth={1.25} aria-hidden="true" />
+        Iniciar sesión
+      </button>
+    );
+  }
+
   return (
     <div className="flex items-center gap-4">
       {/* Historial de transacciones */}
@@ -35,11 +51,11 @@ export function UserNav() {
                      transition-colors duration-200 group-hover:border-neutral-600
                      group-hover:text-neutral-300"
         >
-          JG
+          {user.name.slice(0, 2).toUpperCase()}
         </span>
         <span className="hidden text-xs text-neutral-400 transition-colors
                          duration-200 group-hover:text-neutral-300 sm:inline">
-          Jaime
+          {user.name}
         </span>
       </button>
     </div>
