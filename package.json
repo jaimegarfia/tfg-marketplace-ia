@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "sandbox:build": "docker build -t certia-sandbox ./src/sandbox",
+    "sandbox:test": "node scripts/sandbox-test.mjs"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",

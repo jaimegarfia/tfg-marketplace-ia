@@ -15,10 +15,10 @@ import {
 import type {
   AgenteConAuditoria,
   EstadoAuditoria,
-  ResultadoAuditoria,
   Vulnerabilidad,
 } from "@/types/database";
 import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
+import { getApprovedPermissionRows } from "@/lib/audit-permissions-ui";
 import { useMockAuth } from "@/context/mock-auth-context";
 
 /* ── Visual mappings ────────────────────────────────────────────────── */
@@ -64,67 +64,22 @@ interface LogLine {
   text: string;
 }
 
-function generateSimulatedLogs(agente: AgenteConAuditoria): LogLine[] {
-  if (agente.auditoria?.logs_sandbox) {
-    // Parse real logs if available
-    return agente.auditoria.logs_sandbox.split("\n").map((line) => {
-      if (line.includes("[PASS]")) return { tag: "PASS" as const, text: line };
-      if (line.includes("[FAIL]")) return { tag: "FAIL" as const, text: line };
-      if (line.includes("[WARN]")) return { tag: "WARN" as const, text: line };
-      return { tag: "INFO" as const, text: line };
-    });
+function parseSandboxLogs(logsSandbox: string | undefined): LogLine[] {
+  if (!logsSandbox?.trim()) {
+    return [
+      {
+        tag: "INFO",
+        text: "Sin logs de sandbox — el activo aún no ha sido auditado.",
+      },
+    ];
   }
 
-  // Generate simulated logs based on estado_auditoria
-  const isCertified = agente.estado_auditoria === "certificado";
-  const isRejected = agente.estado_auditoria === "rechazado";
-  const isAuditing = agente.estado_auditoria === "en_auditoria";
-
-  const lines: LogLine[] = [
-    { tag: "INFO", text: `> Sandbox execution initiated for ${agente.nombre}` },
-    { tag: "INFO", text: `  Runtime: ${agente.tipo_activo === "runtime_artifact" ? "Docker container v24.0" : "Workflow engine (n8n v1.62)"}` },
-    { tag: "INFO", text: `  Version: ${agente.version}` },
-    { tag: "INFO", text: "" },
-  ];
-
-  if (isCertified) {
-    lines.push(
-      { tag: "PASS", text: "[PASS] vulnerability_scan: 0 CVEs detected" },
-      { tag: "PASS", text: "[PASS] static_analysis: no unsafe patterns" },
-      { tag: "PASS", text: `[PASS] integrity_check: SHA-256 ${agente.hash_integridad ? agente.hash_integridad.slice(0, 16) + "..." : "verified"}` },
-      { tag: "PASS", text: "[PASS] sandbox_isolation: network policies OK" },
-      { tag: "PASS", text: "[PASS] permission_scope: minimal privilege verified" },
-      { tag: "INFO", text: "" },
-      { tag: "PASS", text: `Digital signature: ${agente.firma_digital ?? "ed25519_verified"}` },
-    );
-  } else if (isRejected) {
-    lines.push(
-      { tag: "PASS", text: "[PASS] static_analysis: no unsafe patterns" },
-      { tag: "FAIL", text: "[FAIL] vulnerability_scan: 3 CVEs found (2 HIGH)" },
-      { tag: "FAIL", text: "  → CVE-2024-3094: arbitrary code execution (xz-utils)" },
-      { tag: "FAIL", text: "  → CVE-2024-1086: privilege escalation (nf_tables)" },
-      { tag: "WARN", text: "[WARN] sandbox_isolation: outbound network detected" },
-      { tag: "FAIL", text: "[FAIL] permission_scope: excessive filesystem access" },
-      { tag: "INFO", text: "" },
-      { tag: "FAIL", text: "Audit result: REJECTED — critical vulnerabilities" },
-    );
-  } else if (isAuditing) {
-    lines.push(
-      { tag: "PASS", text: "[PASS] static_analysis: no unsafe patterns" },
-      { tag: "PASS", text: "[PASS] vulnerability_scan: 0 CVEs detected" },
-      { tag: "WARN", text: "[WARN] sandbox_isolation: pending network review" },
-      { tag: "INFO", text: "[....] permission_scope: analysis in progress..." },
-      { tag: "INFO", text: "" },
-      { tag: "INFO", text: "Audit in progress — awaiting manual review" },
-    );
-  } else {
-    lines.push(
-      { tag: "INFO", text: "No audit has been initiated for this agent." },
-      { tag: "INFO", text: "Submit for review to begin certification process." },
-    );
-  }
-
-  return lines;
+  return logsSandbox.split("\n").map((line) => {
+    if (line.includes("[PASS]")) return { tag: "PASS" as const, text: line };
+    if (line.includes("[FAIL]")) return { tag: "FAIL" as const, text: line };
+    if (line.includes("[WARN]")) return { tag: "WARN" as const, text: line };
+    return { tag: "INFO" as const, text: line };
+  });
 }
 
 function logTagColor(tag: LogLine["tag"]): string {
@@ -226,9 +181,15 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
 
   const visual = AUDIT_VISUALS[agente.estado_auditoria];
   const AuditIcon = visual.icon;
-  const logs = generateSimulatedLogs(agente);
+  const logs = parseSandboxLogs(agente.auditoria?.logs_sandbox);
   const vulns = agente.auditoria?.vulnerabilidades_detectadas ?? [];
-  const permisos = agente.auditoria?.permisos_aprobados ?? [];
+  const vulnCount =
+    agente.auditoria?.vulnerabilidades_count ?? vulns.length;
+  const permisos = agente.auditoria
+    ? getApprovedPermissionRows(agente.auditoria.permisos_aprobados)
+    : [];
+  const integrityHash =
+    agente.auditoria?.hash_integridad ?? agente.hash_integridad;
   const isFree = agente.precio_usd === 0;
 
   return (
@@ -324,29 +285,38 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
           </div>
 
           {/* Vulnerabilidades (if any) */}
-          {vulns.length > 0 && (
+          {(vulns.length > 0 || vulnCount > 0) && (
             <div className="space-y-3 border-b border-neutral-800/60 px-6 py-6">
               <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-                Vulnerabilidades detectadas ({vulns.length})
+                Vulnerabilidades detectadas ({vulns.length > 0 ? vulns.length : vulnCount})
               </h3>
-              <ul className="space-y-2">
-                {vulns.map((v) => (
-                  <li
-                    key={v.id}
-                    className={`rounded-md border px-3 py-2 text-xs ${severityColor(v.severidad)}`}
-                  >
-                    <span className="font-mono font-medium uppercase">
-                      [{v.severidad}]
-                    </span>{" "}
-                    {v.descripcion}
-                    {v.cwe && (
-                      <span className="ml-2 text-neutral-600">
-                        ({v.cwe})
-                      </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
+              {vulns.length > 0 ? (
+                <ul className="space-y-2">
+                  {vulns.map((v) => (
+                    <li
+                      key={v.id}
+                      className={`rounded-md border px-3 py-2 text-xs ${severityColor(v.severidad)}`}
+                    >
+                      <span className="font-mono font-medium uppercase">
+                        [{v.severidad}]
+                      </span>{" "}
+                      {v.descripcion}
+                      {v.cwe && (
+                        <span className="ml-2 text-neutral-600">
+                          ({v.cwe})
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-md border border-amber-400/15 bg-amber-400/[0.06] px-3 py-2 text-xs text-amber-400/70">
+                  El motor de auditoría reportó {vulnCount} hallazgo
+                  {vulnCount === 1 ? "" : "s"} potencial
+                  {vulnCount === 1 ? "" : "es"} en el análisis estático del
+                  descriptor.
+                </p>
+              )}
             </div>
           )}
 
@@ -359,12 +329,12 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
               <ul className="space-y-1.5">
                 {permisos.map((p, i) => (
                   <li
-                    key={i}
+                    key={`${p.scope}-${p.resource}-${i}`}
                     className="flex items-baseline gap-2 font-mono text-[11px] text-neutral-400"
                   >
                     <span className="text-emerald-400/60">●</span>
-                    <span className="text-neutral-500">{p.alcance}</span>
-                    <span className="text-neutral-300">{p.recurso}</span>
+                    <span className="text-neutral-500">{p.scope}</span>
+                    <span className="text-neutral-300">{p.resource}</span>
                   </li>
                 ))}
               </ul>
@@ -372,13 +342,13 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
           )}
 
           {/* Integrity hash */}
-          {agente.hash_integridad && (
+          {integrityHash && (
             <div className="space-y-2 px-6 py-6">
               <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
                 Hash de integridad
               </h3>
               <p className="break-all font-mono text-[11px] leading-relaxed text-neutral-500">
-                SHA-256: {agente.hash_integridad}
+                SHA-256: {integrityHash}
               </p>
               {agente.firma_digital && (
                 <p className="font-mono text-[11px] text-neutral-600">

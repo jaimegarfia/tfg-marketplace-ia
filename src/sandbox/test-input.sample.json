@@ -1,0 +1,10 @@
+{
+  "assetName": "Sentinel RAG",
+  "descriptor": {
+    "asset": "Sentinel RAG",
+    "version": "1.0.0",
+    "type": "runtime_artifact",
+    "body": "Agente de recuperación con fetch(https://api.example.com/v1/search)."
+  },
+  "auditedAt": "2026-06-02T00:00:00.000Z"
+}

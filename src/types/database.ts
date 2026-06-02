@@ -1,3 +1,5 @@
+import type { ApprovedPermissions } from "@/lib/audit-engine";
+
 /**
  * Tipos de dominio que mapean EXACTAMENTE el esquema físico relacional de
  * PostgreSQL (Neon). Son la única fuente de verdad para las filas que viajan
@@ -86,15 +88,22 @@ export interface Agente {
   created_at: string;
 }
 
+export type { ApprovedPermissions };
+
+/** Snapshot de auditoría para el panel lateral (catálogo). */
+export interface AuditoriaPanelSnapshot {
+  resultado_global: ResultadoAuditoria;
+  logs_sandbox: string;
+  vulnerabilidades_detectadas: Vulnerabilidad[];
+  vulnerabilidades_count: number;
+  permisos_aprobados: ApprovedPermissions;
+  hash_integridad: string;
+  fecha_ejecucion: string;
+}
+
 /** Agente enriquecido con datos de auditoría para el panel de inspección. */
 export interface AgenteConAuditoria extends Agente {
-  auditoria: {
-    resultado_global: ResultadoAuditoria;
-    logs_sandbox: string;
-    vulnerabilidades_detectadas: Vulnerabilidad[];
-    permisos_aprobados: PermisoAprobado[];
-    fecha_ejecucion: string;
-  } | null;
+  auditoria: AuditoriaPanelSnapshot | null;
 }
 
 /** Tabla `auditoria`. */

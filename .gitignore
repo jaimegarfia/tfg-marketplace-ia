@@ -96,6 +96,9 @@ web_modules/
 .next
 out
 
+# Entradas temporales del motor Docker (audit-engine)
+src/sandbox/audit-input-*.json
+
 # Nuxt.js build / generate output
 .nuxt
 dist

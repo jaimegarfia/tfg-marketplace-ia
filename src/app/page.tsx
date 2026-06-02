@@ -1,15 +1,10 @@
 import { ArrowUpRight, Shield } from "lucide-react";
 import { query } from "@/lib/db";
-import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
-import type {
-  Agente,
-  AgenteConAuditoria,
-  EstadoAuditoria,
-  TipoActivo,
-  ResultadoAuditoria,
-  Vulnerabilidad,
-  PermisoAprobado,
-} from "@/types/database";
+import type { Agente, AgenteConAuditoria, TipoActivo } from "@/types/database";
+import {
+  resolveCatalogAuditoriaFromDatabase,
+  type AgenteRowAuditFields,
+} from "@/lib/audit-catalog";
 import { CatalogClient } from "@/components/catalog-client";
 import { UserNav } from "@/components/user-nav";
 
@@ -21,7 +16,7 @@ const TRUST_MARKERS = [
   "Firma de integridad",
 ] as const;
 
-interface AgenteRowRaw {
+interface AgenteRowRaw extends AgenteRowAuditFields {
   id: string;
   desarrollador_id: string;
   nombre: string;
@@ -29,186 +24,54 @@ interface AgenteRowRaw {
   version: string;
   precio_usd: string | number;
   tipo_activo: TipoActivo;
-  estado_auditoria: EstadoAuditoria;
+  estado_auditoria: Agente["estado_auditoria"];
   hash_integridad: string | null;
   firma_digital: string | null;
   created_at: string;
-  /* Audit columns (nullable — LEFT JOIN) */
-  audit_resultado: ResultadoAuditoria | null;
-  audit_logs: string | null;
-  audit_vulnerabilidades: Vulnerabilidad[] | string | null;
-  audit_permisos: PermisoAprobado[] | string | null;
-  audit_fecha: string | null;
-}
-
-/**
- * Genera datos de auditoría simulados coherentes con el estado del agente.
- * Se usa como fallback cuando no existe la tabla `auditorias` en Neon.
- */
-function generarAuditoriaSimulada(
-  agente: Agente,
-): AgenteConAuditoria["auditoria"] {
-  switch (agente.estado_auditoria) {
-    case "certificado":
-      return {
-        resultado_global: "aprobado",
-        logs_sandbox: [
-          `> Sandbox execution initiated for ${agente.nombre}`,
-          `  Runtime: ${agente.tipo_activo === "runtime_artifact" ? "Docker container v24.0" : "Workflow engine (n8n v1.62)"}`,
-          `  Version: ${agente.version}`,
-          "",
-          "[PASS] vulnerability_scan: 0 CVEs detected",
-          "[PASS] static_analysis: no unsafe patterns",
-          `[PASS] integrity_check: SHA-256 ${agente.hash_integridad?.slice(0, 16) ?? "verified"}...`,
-          "[PASS] sandbox_isolation: network policies OK",
-          "[PASS] permission_scope: minimal privilege verified",
-          "",
-          `Digital signature: ${agente.firma_digital ?? "ed25519_verified"}`,
-        ].join("\n"),
-        vulnerabilidades_detectadas: [],
-        permisos_aprobados: [
-          {
-            recurso: "/api/inference",
-            alcance: "lectura",
-            justificacion: "Acceso al endpoint de inferencia",
-          },
-          {
-            recurso: "/tmp/sandbox",
-            alcance: "escritura",
-            justificacion: "Escritura temporal en sandbox aislado",
-          },
-          {
-            recurso: "outbound:443",
-            alcance: "red",
-            justificacion: "HTTPS para modelo remoto",
-          },
-        ],
-        fecha_ejecucion: new Date().toISOString(),
-      };
-    case "rechazado":
-      return {
-        resultado_global: "rechazado",
-        logs_sandbox: [
-          `> Sandbox execution initiated for ${agente.nombre}`,
-          `  Runtime: ${agente.tipo_activo === "runtime_artifact" ? "Docker container v24.0" : "Workflow engine (n8n v1.62)"}`,
-          `  Version: ${agente.version}`,
-          "",
-          "[PASS] static_analysis: no unsafe patterns",
-          "[FAIL] vulnerability_scan: 3 CVEs found (2 HIGH)",
-          "  → CVE-2024-3094: arbitrary code execution (xz-utils)",
-          "  → CVE-2024-1086: privilege escalation (nf_tables)",
-          "[WARN] sandbox_isolation: outbound network detected",
-          "[FAIL] permission_scope: excessive filesystem access",
-          "",
-          "Audit result: REJECTED — critical vulnerabilities",
-        ].join("\n"),
-        vulnerabilidades_detectadas: [
-          {
-            id: "vuln-001",
-            severidad: "critica",
-            descripcion: "Arbitrary code execution via xz-utils backdoor",
-            cwe: "CWE-506",
-          },
-          {
-            id: "vuln-002",
-            severidad: "alta",
-            descripcion: "Privilege escalation through nf_tables",
-            cwe: "CWE-269",
-          },
-          {
-            id: "vuln-003",
-            severidad: "media",
-            descripcion: "Unbounded outbound network connections",
-            cwe: "CWE-918",
-          },
-        ],
-        permisos_aprobados: [],
-        fecha_ejecucion: new Date().toISOString(),
-      };
-    case "en_auditoria":
-      return {
-        resultado_global: "advertencia",
-        logs_sandbox: [
-          `> Sandbox execution initiated for ${agente.nombre}`,
-          `  Runtime: ${agente.tipo_activo === "runtime_artifact" ? "Docker container v24.0" : "Workflow engine (n8n v1.62)"}`,
-          `  Version: ${agente.version}`,
-          "",
-          "[PASS] static_analysis: no unsafe patterns",
-          "[PASS] vulnerability_scan: 0 CVEs detected",
-          "[WARN] sandbox_isolation: pending network review",
-          "[....] permission_scope: analysis in progress...",
-          "",
-          "Audit in progress — awaiting manual review",
-        ].join("\n"),
-        vulnerabilidades_detectadas: [],
-        permisos_aprobados: [],
-        fecha_ejecucion: new Date().toISOString(),
-      };
-    default:
-      return null;
-  }
 }
 
 async function getCatalogoAgentes(): Promise<AgenteConAuditoria[]> {
   try {
-    // Attempt LEFT JOIN with auditorias table
-    let rows: AgenteRowRaw[];
-    try {
-      rows = await query<AgenteRowRaw>(
-        `
+    const rows = await query<AgenteRowRaw>(
+      `
+        SELECT
+          a.id::text AS id,
+          a.desarrollador_id::text AS desarrollador_id,
+          a.nombre,
+          a.descripcion,
+          a.version,
+          a.precio_usd,
+          a.tipo_activo,
+          a.estado_auditoria,
+          a.hash_integridad,
+          a.firma_digital,
+          a.created_at::text AS created_at,
+          au.resultado_global AS audit_resultado,
+          au.logs_sandbox AS audit_logs,
+          au.vulnerabilidades_detectadas AS audit_vulnerabilidades,
+          au.permisos_aprobados AS audit_permisos,
+          au.fecha_ejecucion::text AS audit_fecha
+        FROM agentes a
+        JOIN LATERAL (
           SELECT
-            a.id::text AS id,
-            a.desarrollador_id::text AS desarrollador_id,
-            a.nombre,
-            a.descripcion,
-            a.version,
-            a.precio_usd,
-            a.tipo_activo,
-            a.estado_auditoria,
-            a.hash_integridad,
-            a.firma_digital,
-            a.created_at::text AS created_at,
-            au.resultado_global AS audit_resultado,
-            au.logs_sandbox AS audit_logs,
-            au.vulnerabilidades_detectadas AS audit_vulnerabilidades,
-            au.permisos_aprobados AS audit_permisos,
-            au.fecha_ejecucion::text AS audit_fecha
-          FROM agentes a
-          LEFT JOIN auditorias au ON au.agente_id = a.id
-          ORDER BY a.created_at DESC, a.nombre ASC
-          LIMIT 24
-        `,
-      );
-    } catch {
-      // Fallback: auditorias table might not exist yet
-      const basicRows = await query<AgenteRowRaw>(
-        `
-          SELECT
-            id::text AS id,
-            desarrollador_id::text AS desarrollador_id,
-            nombre,
-            descripcion,
-            version,
-            precio_usd,
-            tipo_activo,
-            estado_auditoria,
-            hash_integridad,
-            firma_digital,
-            created_at::text AS created_at,
-            NULL AS audit_resultado,
-            NULL AS audit_logs,
-            NULL AS audit_vulnerabilidades,
-            NULL AS audit_permisos,
-            NULL AS audit_fecha
-          FROM agentes
-          ORDER BY created_at DESC, nombre ASC
-          LIMIT 24
-        `,
-      );
-      rows = basicRows;
-    }
+            resultado_global,
+            logs_sandbox,
+            vulnerabilidades_detectadas,
+            permisos_aprobados,
+            fecha_ejecucion
+          FROM auditorias
+          WHERE agente_id = a.id
+          ORDER BY fecha_ejecucion DESC
+          LIMIT 1
+        ) au ON true
+        WHERE a.estado_auditoria = 'certificado'
+        ORDER BY a.created_at DESC, a.nombre ASC
+        LIMIT 24
+      `,
+    );
 
-    return rows.map((row) => {
+    const agentes: AgenteConAuditoria[] = [];
+    for (const row of rows) {
       const agente: Agente = {
         id: row.id,
         desarrollador_id: row.desarrollador_id,
@@ -227,37 +90,20 @@ async function getCatalogoAgentes(): Promise<AgenteConAuditoria[]> {
         created_at: row.created_at,
       };
 
-      // Build audit data from JOIN or generate simulated
-      let auditoria: AgenteConAuditoria["auditoria"] = null;
+      const { auditoria, hash_integridad } = resolveCatalogAuditoriaFromDatabase(
+        agente,
+        row,
+      );
 
-      if (row.audit_resultado) {
-        const parseJsonb = <T,>(val: T | string | null): T | null => {
-          if (val === null || val === undefined) return null;
-          if (typeof val === "string") {
-            try {
-              return JSON.parse(val) as T;
-            } catch {
-              return null;
-            }
-          }
-          return val;
-        };
+      if (!auditoria) continue;
 
-        auditoria = {
-          resultado_global: row.audit_resultado,
-          logs_sandbox: row.audit_logs ?? "",
-          vulnerabilidades_detectadas:
-            parseJsonb<Vulnerabilidad[]>(row.audit_vulnerabilidades) ?? [],
-          permisos_aprobados:
-            parseJsonb<PermisoAprobado[]>(row.audit_permisos) ?? [],
-          fecha_ejecucion: row.audit_fecha ?? new Date().toISOString(),
-        };
-      } else {
-        auditoria = generarAuditoriaSimulada(agente);
-      }
-
-      return { ...agente, auditoria };
-    });
+      agentes.push({
+        ...agente,
+        hash_integridad,
+        auditoria,
+      });
+    }
+    return agentes;
   } catch (error) {
     console.error(
       "[catalogo] No se pudieron cargar agentes desde Neon.",
