@@ -1,9 +1,9 @@
 "use client";
 
 import type { LucideIcon } from "lucide-react";
-import { BarChart3, PackageSearch, Sparkles, Upload } from "lucide-react";
+import { LayoutDashboard, Sparkles, Upload } from "lucide-react";
 
-export type DeveloperTab = "metricas" | "activos" | "publicar" | "adaptaciones";
+export type DeveloperTab = "resumen" | "publicar" | "adaptaciones";
 
 interface DeveloperPanelNavProps {
   activeTab: DeveloperTab;
@@ -16,8 +16,7 @@ const TABS: ReadonlyArray<{
   label: string;
   icon: LucideIcon;
 }> = [
-  { id: "metricas", label: "Métricas", icon: BarChart3 },
-  { id: "activos", label: "Mis activos", icon: PackageSearch },
+  { id: "resumen", label: "Resumen", icon: LayoutDashboard },
   { id: "publicar", label: "Publicar activo", icon: Upload },
   { id: "adaptaciones", label: "Adaptaciones", icon: Sparkles },
 ];

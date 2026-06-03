@@ -8,8 +8,7 @@ import {
   DeveloperPanelNav,
   type DeveloperTab,
 } from "@/components/layout/developer-panel-nav";
-import { TabMetrics } from "@/components/developer/tab-metrics";
-import { TabAssets } from "@/components/developer/tab-assets";
+import { TabOverview } from "@/components/developer/tab-overview";
 import { TabPublish } from "@/components/developer/tab-publish";
 import { TabAdaptations } from "@/components/developer/tab-adaptations";
 
@@ -18,7 +17,7 @@ interface DeveloperDashboardClientProps {
 }
 
 export function DeveloperDashboardClient({ data }: DeveloperDashboardClientProps) {
-  const [activeTab, setActiveTab] = useState<DeveloperTab>("metricas");
+  const [activeTab, setActiveTab] = useState<DeveloperTab>("resumen");
 
   return (
     <MarketplaceShell>
@@ -33,22 +32,17 @@ export function DeveloperDashboardClient({ data }: DeveloperDashboardClientProps
       />
 
       <main className="relative mx-auto max-w-[1400px] px-4 py-6 sm:px-6 sm:py-8">
-        {activeTab === "metricas" && (
-          <TabMetrics
+        {activeTab === "resumen" && (
+          <TabOverview
             metrics={data.metrics}
             developerName={data.developer.nombre}
-          />
-        )}
-
-        {activeTab === "activos" && (
-          <TabAssets
             agentes={data.agentes}
             onPublishClick={() => setActiveTab("publicar")}
           />
         )}
 
         {activeTab === "publicar" && (
-          <TabPublish onPublished={() => setActiveTab("activos")} />
+          <TabPublish onPublished={() => setActiveTab("resumen")} />
         )}
 
         {activeTab === "adaptaciones" && (
