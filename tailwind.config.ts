@@ -51,12 +51,17 @@ const config: Config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        "slide-in-up": {
+          "0%": { transform: "translateY(100%)" },
+          "100%": { transform: "translateY(0)" },
+        },
       },
       animation: {
         "fade-up": "fade-up 0.6s ease-out both",
         "slide-in-right": "slide-in-right 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
         "slide-out-right": "slide-out-right 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
         "overlay-in": "overlay-in 0.2s ease-out",
+        "slide-in-up": "slide-in-up 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
       },
     },
   },

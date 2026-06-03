@@ -80,4 +80,39 @@
   .drawer-scroll::-webkit-scrollbar-thumb:hover {
     background: rgb(255 255 255 / 0.12);
   }
+
+  /* Range sliders — thumbs modernos sin spinners nativos */
+  .range-thumb {
+    height: 1.25rem;
+  }
+
+  .range-thumb::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    pointer-events: auto;
+    height: 14px;
+    width: 14px;
+    border-radius: 9999px;
+    border: 2px solid rgb(16 185 129 / 0.9);
+    background: #0b0d10;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+    cursor: pointer;
+  }
+
+  .range-thumb::-moz-range-thumb {
+    pointer-events: auto;
+    height: 14px;
+    width: 14px;
+    border-radius: 9999px;
+    border: 2px solid rgb(16 185 129 / 0.9);
+    background: #0b0d10;
+    box-shadow: 0 0 0 1px rgb(255 255 255 / 0.08);
+    cursor: pointer;
+  }
+
+  .range-thumb::-webkit-slider-runnable-track,
+  .range-thumb::-moz-range-track {
+    background: transparent;
+    border: none;
+  }
 }

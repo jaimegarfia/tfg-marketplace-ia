@@ -193,33 +193,35 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
   const isFree = agente.precio_usd === 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end">
+    <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
       {/* Overlay */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-overlay-in"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-overlay-in"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Panel */}
-      <aside
+      {/* Modal centrado */}
+      <div
         role="dialog"
         aria-modal="true"
         aria-label={`Detalle de ${agente.nombre}`}
         className="
-          relative z-10 flex h-full w-full max-w-lg flex-col
-          border-l border-neutral-800/80 bg-[#0b0d10]
-          animate-slide-in-right
+          relative z-10 flex max-h-[92dvh] w-full max-w-2xl flex-col
+          rounded-t-2xl border border-neutral-800/80 bg-[#0b0d10]
+          shadow-2xl shadow-black/50
+          animate-fade-up
+          sm:max-h-[85vh] sm:rounded-2xl
         "
       >
-        {/* Close button */}
-        <div className="flex items-center justify-between border-b border-neutral-800/60 px-6 py-4">
-          <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-            Panel de confianza
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-neutral-800/60 px-5 py-4 sm:px-6">
+          <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+            Detalle del activo
           </span>
           <button
             onClick={onClose}
-            aria-label="Cerrar panel"
+            aria-label="Cerrar"
             className="flex h-8 w-8 items-center justify-center rounded-lg
                        text-neutral-500 transition-colors duration-200
                        hover:bg-white/[0.04] hover:text-neutral-300"
@@ -402,7 +404,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
             </p>
           )}
         </div>
-      </aside>
+      </div>
     </div>
   );
 }

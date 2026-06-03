@@ -240,11 +240,15 @@ async function persistAuditedAsset(payload: UploadPayload): Promise<InsertResult
           version,
           precio_usd,
           tipo_activo,
+          categoria,
+          imagen_url,
+          rating_promedio,
+          num_valoraciones,
           estado_auditoria,
           hash_integridad,
           firma_digital
         )
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NULL)
+        VALUES ($1, $2, $3, $4, $5, $6, 'automatizacion', NULL, 0, 0, $7, $8, NULL)
         RETURNING id::text AS id
       `,
       [

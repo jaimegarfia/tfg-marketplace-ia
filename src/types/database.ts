@@ -24,6 +24,15 @@ export type RolUsuario =
 
 export type TipoActivo = "runtime_artifact" | "reference_architecture";
 
+export type CategoriaAgente =
+  | "rag"
+  | "automatizacion"
+  | "finanzas"
+  | "compliance"
+  | "orquestacion"
+  | "datos"
+  | "seguridad";
+
 export type EstadoAuditoria =
   | "borrador"
   | "en_auditoria"
@@ -82,6 +91,10 @@ export interface Agente {
   version: string;
   precio_usd: number;
   tipo_activo: TipoActivo;
+  categoria: CategoriaAgente;
+  imagen_url: string | null;
+  rating_promedio: number;
+  num_valoraciones: number;
   estado_auditoria: EstadoAuditoria;
   hash_integridad: string | null;
   firma_digital: string | null;
@@ -104,6 +117,7 @@ export interface AuditoriaPanelSnapshot {
 /** Agente enriquecido con datos de auditoría para el panel de inspección. */
 export interface AgenteConAuditoria extends Agente {
   auditoria: AuditoriaPanelSnapshot | null;
+  desarrollador_nombre?: string;
 }
 
 /** Tabla `auditoria`. */

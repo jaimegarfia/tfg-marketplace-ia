@@ -42,7 +42,8 @@ export async function POST(request: Request) {
     const summary = await seedCatalogData();
     return NextResponse.json({
       ok: true,
-      message: "Seed de catálogo aplicado correctamente.",
+      message:
+        "Catálogo reseteado: datos de prueba eliminados y catálogo demo repoblado.",
       summary,
     });
   } catch (error) {
