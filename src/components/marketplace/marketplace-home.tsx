@@ -15,6 +15,7 @@ import { SiteHeader } from "@/components/layout/site-header";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { TrustBanner } from "@/components/layout/trust-banner";
 import { AgentGrid } from "@/components/marketplace/agent-grid";
+import { AgentGridSkeleton } from "@/components/marketplace/agent-grid-skeleton";
 import { FilterBar } from "@/components/marketplace/filter-bar";
 import { MarketplaceSection } from "@/components/marketplace/marketplace-section";
 import { AgentDrawer } from "@/components/agent-drawer";
@@ -40,6 +41,9 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   const [pendingAcquire, setPendingAcquire] = useState<AgenteConAuditoria | null>(
     null,
   );
+  const [isCategoryLoading, setIsCategoryLoading] = useState(false);
+
+  const CATEGORY_LOAD_MS = 320;
 
   const maxCatalogPrice = useMemo(
     () => Math.max(0, ...agentes.map((a) => a.precio_usd)),
@@ -109,8 +113,18 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   }, [user, pendingAcquire]);
 
   const handleCategoryChange = (categoria: CategoriaAgente | "todos") => {
+    if (categoria === filters.categoria) return;
+    setIsCategoryLoading(true);
     updateFilters({ categoria });
   };
+
+  useEffect(() => {
+    if (!isCategoryLoading) return;
+    const timer = window.setTimeout(() => {
+      setIsCategoryLoading(false);
+    }, CATEGORY_LOAD_MS);
+    return () => window.clearTimeout(timer);
+  }, [isCategoryLoading, filters.categoria]);
 
   const handleSearchSubmit = (q: string) => {
     if (q === filters.q) return;
@@ -228,7 +242,9 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
                 </p>
               </div>
 
-              {filteredAgentes.length > 0 ? (
+              {isCategoryLoading ? (
+                <AgentGridSkeleton count={3} />
+              ) : filteredAgentes.length > 0 ? (
                 <AgentGrid
                   agentes={filteredAgentes}
                   onSelect={setSelectedAgent}

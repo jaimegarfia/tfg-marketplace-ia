@@ -187,16 +187,7 @@ async function insertAuditForCertifiedAgent(
   }
 
   const logs = agent.audit_logs ?? DEFAULT_AUDIT_LOGS;
-  const permisosJson = JSON.stringify({
-    read_filesystem: false,
-    network_access: false,
-    allowed_domains: [],
-    custom_scripts: {
-      enabled: false,
-      inline_code_detected: false,
-      execution_engines: ["none"],
-    },
-  });
+  const permisosJson = JSON.stringify(agent.permisos_aprobados);
 
   const attempts: Array<{ sql: string; values: unknown[] }> = [
     {

@@ -3,6 +3,8 @@ import type {
   EstadoAuditoria,
   TipoActivo,
 } from "@/types/database";
+import type { ApprovedPermissions } from "@/lib/audit-engine";
+import { resolveSeedPermissions } from "@/lib/seed-permissions";
 
 export interface SeedDeveloper {
   email: string;
@@ -23,6 +25,7 @@ export interface SeedAgentInput {
   hash_integridad: string | null;
   firma_digital: string | null;
   developer_email: string;
+  permisos_aprobados: ApprovedPermissions;
   audit_logs?: string;
 }
 
@@ -46,17 +49,27 @@ function hashFor(name: string): string {
 function agent(
   partial: Omit<
     SeedAgentInput,
-    "hash_integridad" | "firma_digital" | "imagen_url"
-  > & { imagen_url?: string | null },
+    "hash_integridad" | "firma_digital" | "imagen_url" | "permisos_aprobados"
+  > & {
+    imagen_url?: string | null;
+    permisos_aprobados?: ApprovedPermissions;
+  },
 ): SeedAgentInput {
   const certificado = partial.estado_auditoria === "certificado";
+  const { permisos_aprobados: permisosOverride, ...rest } = partial;
   return {
     imagen_url: partial.imagen_url ?? null,
     hash_integridad: certificado ? hashFor(partial.nombre) : null,
     firma_digital: certificado
       ? `sig_ed25519_${partial.nombre.toLowerCase().replace(/\s+/g, "_").slice(0, 24)}`
       : null,
-    ...partial,
+    permisos_aprobados:
+      permisosOverride ??
+      resolveSeedPermissions({
+        nombre: partial.nombre,
+        categoria: partial.categoria,
+      }),
+    ...rest,
   };
 }
 

@@ -18,8 +18,10 @@ import type {
   Vulnerabilidad,
 } from "@/types/database";
 import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
-import { getApprovedPermissionRows } from "@/lib/audit-permissions-ui";
+import { VerifiedPermissionsScope } from "@/components/verified-permissions-scope";
 import { useMockAuth } from "@/context/mock-auth-context";
+import type { ApprovedPermissions } from "@/lib/audit-engine";
+import { isApprovedPermissions } from "@/lib/audit-catalog";
 
 /* ── Visual mappings ────────────────────────────────────────────────── */
 
@@ -110,7 +112,18 @@ function severityColor(sev: Vulnerabilidad["severidad"]): string {
   }
 }
 
-/* ── Component ──────────────────────────────────────────────────────── */
+function fallbackPermissions(): ApprovedPermissions {
+  return {
+    read_filesystem: false,
+    network_access: false,
+    allowed_domains: [],
+    custom_scripts: {
+      enabled: false,
+      inline_code_detected: false,
+      execution_engines: ["none"],
+    },
+  };
+}
 
 interface AgentDrawerProps {
   agente: AgenteConAuditoria | null;
@@ -185,9 +198,12 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
   const vulns = agente.auditoria?.vulnerabilidades_detectadas ?? [];
   const vulnCount =
     agente.auditoria?.vulnerabilidades_count ?? vulns.length;
-  const permisos = agente.auditoria
-    ? getApprovedPermissionRows(agente.auditoria.permisos_aprobados)
-    : [];
+  const permisosRaw = agente.auditoria?.permisos_aprobados;
+  const permisosEstructurados: ApprovedPermissions = isApprovedPermissions(
+    permisosRaw,
+  )
+    ? permisosRaw
+    : fallbackPermissions();
   const integrityHash =
     agente.auditoria?.hash_integridad ?? agente.hash_integridad;
   const isFree = agente.precio_usd === 0;
@@ -286,6 +302,10 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
             </div>
           </div>
 
+          {agente.auditoria && (
+            <VerifiedPermissionsScope permisos={permisosEstructurados} />
+          )}
+
           {/* Vulnerabilidades (if any) */}
           {(vulns.length > 0 || vulnCount > 0) && (
             <div className="space-y-3 border-b border-neutral-800/60 px-6 py-6">
@@ -319,27 +339,6 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
                   descriptor.
                 </p>
               )}
-            </div>
-          )}
-
-          {/* Permisos aprobados */}
-          {permisos.length > 0 && (
-            <div className="space-y-3 border-b border-neutral-800/60 px-6 py-6">
-              <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-                Permisos aprobados ({permisos.length})
-              </h3>
-              <ul className="space-y-1.5">
-                {permisos.map((p, i) => (
-                  <li
-                    key={`${p.scope}-${p.resource}-${i}`}
-                    className="flex items-baseline gap-2 font-mono text-[11px] text-neutral-400"
-                  >
-                    <span className="text-emerald-400/60">●</span>
-                    <span className="text-neutral-500">{p.scope}</span>
-                    <span className="text-neutral-300">{p.resource}</span>
-                  </li>
-                ))}
-              </ul>
             </div>
           )}
 
@@ -377,10 +376,10 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
             {isProcessing ? (
               <>
                 <span
-                  className="h-3.5 w-3.5 animate-spin rounded-full border border-neutral-700 border-t-transparent"
+                  className="h-4 w-4 animate-spin rounded-full border-2 border-neutral-400 border-t-neutral-900"
                   aria-hidden="true"
                 />
-                Procesando...
+                Procesando transacción...
               </>
             ) : isFree ? (
               <>
