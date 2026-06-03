@@ -4,6 +4,7 @@ import { Code2, FolderOpen, Globe, ShieldCheck, Zap } from "lucide-react";
 
 interface VerifiedPermissionsScopeProps {
   permisos: ApprovedPermissions;
+  embedded?: boolean;
 }
 
 interface PermissionBadgeProps {
@@ -41,6 +42,7 @@ function PermissionBadge({ tone, icon, label, detail }: PermissionBadgeProps) {
 
 export function VerifiedPermissionsScope({
   permisos,
+  embedded = false,
 }: VerifiedPermissionsScopeProps) {
   const networkGranted = permisos.network_access;
   const fsGranted = permisos.read_filesystem;
@@ -58,7 +60,13 @@ export function VerifiedPermissionsScope({
     !networkGranted && !fsGranted && !dynamicCode;
 
   return (
-    <div className="space-y-3 border-b border-neutral-800/60 px-6 py-6">
+    <div
+      className={
+        embedded
+          ? "space-y-3"
+          : "space-y-3 border-b border-neutral-800/60 px-6 py-6"
+      }
+    >
       <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
         Ámbito de Permisos Verificados
       </h3>
