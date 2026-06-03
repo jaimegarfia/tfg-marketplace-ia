@@ -9,10 +9,12 @@ import {
   type ReactNode,
 } from "react";
 
+export type AuthIntent = "buyer" | "developer";
+
 export interface MockUser {
   name: string;
   email: string;
-  role: "empresa" | "particular";
+  role: "empresa" | "particular" | "desarrollador";
 }
 
 interface AuthorizePayload {
@@ -23,8 +25,9 @@ interface AuthorizePayload {
 
 interface MockAuthContextValue {
   user: MockUser | null;
+  authIntent: AuthIntent;
   isAuthModalOpen: boolean;
-  openAuthModal: () => void;
+  openAuthModal: (intent?: AuthIntent) => void;
   closeAuthModal: () => void;
   authorizeAccess: (payload?: AuthorizePayload) => void;
   signOut: () => void;
@@ -48,9 +51,11 @@ interface MockAuthProviderProps {
  */
 export function MockAuthProvider({ children }: MockAuthProviderProps) {
   const [user, setUser] = useState<MockUser | null>(null);
+  const [authIntent, setAuthIntent] = useState<AuthIntent>("buyer");
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
-  const openAuthModal = useCallback(() => {
+  const openAuthModal = useCallback((intent: AuthIntent = "buyer") => {
+    setAuthIntent(intent);
     setIsAuthModalOpen(true);
   }, []);
 
@@ -74,13 +79,22 @@ export function MockAuthProvider({ children }: MockAuthProviderProps) {
   const value = useMemo<MockAuthContextValue>(
     () => ({
       user,
+      authIntent,
       isAuthModalOpen,
       openAuthModal,
       closeAuthModal,
       authorizeAccess,
       signOut,
     }),
-    [user, isAuthModalOpen, openAuthModal, closeAuthModal, authorizeAccess, signOut],
+    [
+      user,
+      authIntent,
+      isAuthModalOpen,
+      openAuthModal,
+      closeAuthModal,
+      authorizeAccess,
+      signOut,
+    ],
   );
 
   return (

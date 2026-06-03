@@ -1,15 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { ArrowRight, Shield, X } from "lucide-react";
 import { useMockAuth } from "@/context/mock-auth-context";
+import { establishDeveloperSession } from "@/app/developer/dashboard/actions";
 
 /**
  * Modal de autenticación B2B simulado para el MVP.
  * Mantiene UX de login/registro sin depender de backend real.
  */
 export function MockAuthModal() {
-  const { isAuthModalOpen, closeAuthModal, authorizeAccess } = useMockAuth();
+  const { isAuthModalOpen, closeAuthModal, authorizeAccess, authIntent } =
+    useMockAuth();
+  const [accountMode, setAccountMode] = useState<"buyer" | "developer">("buyer");
   const [isSignUp, setIsSignUp] = useState(false);
   const [fullName, setFullName] = useState("Jaime");
   const [companyName, setCompanyName] = useState("");
@@ -17,6 +20,9 @@ export function MockAuthModal() {
   const [password, setPassword] = useState("********");
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isSubmitting, startSubmitTransition] = useTransition();
+
+  const isDeveloperMode = accountMode === "developer";
 
   useEffect(() => {
     if (!isAuthModalOpen) return;
@@ -38,24 +44,31 @@ export function MockAuthModal() {
 
   useEffect(() => {
     if (!isAuthModalOpen) return;
-    // Reinicia el formulario cada vez que se abre el modal.
+    const mode = authIntent === "developer" ? "developer" : "buyer";
+    setAccountMode(mode);
     setIsSignUp(false);
-    setFullName("Jaime");
+    setFullName(mode === "developer" ? "Certia Labs" : "Jaime");
     setCompanyName("");
-    setEmail("jaime@ejemplo.com");
+    setEmail(
+      mode === "developer" ? "labs@certia.local" : "jaime@ejemplo.com",
+    );
     setPassword("********");
     setAcceptedTerms(false);
     setErrorMessage(null);
-  }, [isAuthModalOpen]);
+  }, [isAuthModalOpen, authIntent]);
 
   if (!isAuthModalOpen) return null;
 
-  const title = isSignUp
-    ? "Crear una cuenta"
-    : "Iniciar sesión en Certia";
-  const submitLabel = isSignUp
-    ? "Crear cuenta"
-    : "Acceder";
+  const title = isDeveloperMode
+    ? "Acceso para desarrolladores"
+    : isSignUp
+      ? "Crear una cuenta"
+      : "Iniciar sesión en Certia";
+  const submitLabel = isDeveloperMode
+    ? "Entrar al panel"
+    : isSignUp
+      ? "Crear cuenta"
+      : "Acceder";
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -78,12 +91,30 @@ export function MockAuthModal() {
     }
 
     setErrorMessage(null);
+
+    if (isDeveloperMode) {
+      startSubmitTransition(async () => {
+        authorizeAccess({
+          name: fullName.trim() || "Desarrollador Certia",
+          email: email.trim(),
+          role: "desarrollador",
+        });
+
+        const result = await establishDeveloperSession(email.trim());
+        if (result?.ok === false) {
+          setErrorMessage(result.error);
+        }
+      });
+      return;
+    }
+
     const role = companyName.trim() ? "empresa" : "particular";
     authorizeAccess({
       name: isSignUp ? fullName : "Jaime",
       email,
       role,
     });
+    closeAuthModal();
   };
 
   const handleOAuthSignIn = (provider: "google" | "apple") => {
@@ -144,15 +175,71 @@ export function MockAuthModal() {
           {title}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-zinc-400">
-          Introduce tus credenciales para acceder al marketplace seguro.
+          {isDeveloperMode
+            ? "Publica, audita y gestiona tus agentes en el marketplace Certia."
+            : "Introduce tus credenciales para acceder al marketplace seguro."}
         </p>
+
+        <div
+          role="tablist"
+          aria-label="Tipo de cuenta"
+          className="mt-5 grid grid-cols-2 gap-1 rounded-xl border border-zinc-800 bg-zinc-900/50 p-1"
+        >
+          <button
+            type="button"
+            role="tab"
+            aria-selected={!isDeveloperMode}
+            onClick={() => {
+              setAccountMode("buyer");
+              setEmail("jaime@ejemplo.com");
+              setFullName("Jaime");
+              setErrorMessage(null);
+            }}
+            className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+              !isDeveloperMode
+                ? "bg-zinc-100 text-zinc-900"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Comprador
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={isDeveloperMode}
+            onClick={() => {
+              setAccountMode("developer");
+              setIsSignUp(false);
+              setEmail("labs@certia.local");
+              setFullName("Certia Labs");
+              setCompanyName("");
+              setErrorMessage(null);
+            }}
+            className={`rounded-lg px-3 py-2 text-xs font-medium transition ${
+              isDeveloperMode
+                ? "bg-emerald-500/15 text-emerald-200"
+                : "text-zinc-400 hover:text-zinc-200"
+            }`}
+          >
+            Desarrollador
+          </button>
+        </div>
+
+        {isDeveloperMode && (
+          <p className="mt-3 rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 text-xs leading-relaxed text-emerald-200/90">
+            Usa un email registrado como desarrollador en Neon (demo:{" "}
+            <span className="font-mono">labs@certia.local</span>).
+          </p>
+        )}
 
         <form className="mt-6 space-y-4" onSubmit={handleSubmit}>
           <div
             className={`overflow-hidden transition-[max-height,opacity] duration-300 ${
-              isSignUp ? "max-h-56 opacity-100" : "max-h-0 opacity-0"
+              isSignUp && !isDeveloperMode
+                ? "max-h-56 opacity-100"
+                : "max-h-0 opacity-0"
             }`}
-            aria-hidden={!isSignUp}
+            aria-hidden={!isSignUp || isDeveloperMode}
           >
             <div className="space-y-4 pb-1">
               <div className="space-y-2">
@@ -251,70 +338,75 @@ export function MockAuthModal() {
 
           <button
             type="submit"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-white"
+            disabled={isSubmitting}
+            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-zinc-100 px-4 py-2.5 text-sm font-medium text-zinc-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {submitLabel}
-            <ArrowRight size={14} strokeWidth={1.25} aria-hidden="true" />
+            {isSubmitting ? "Validando acceso..." : submitLabel}
+            {!isSubmitting && (
+              <ArrowRight size={14} strokeWidth={1.25} aria-hidden="true" />
+            )}
           </button>
 
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t border-zinc-800" />
-            </div>
-            <p className="relative mx-auto w-fit bg-zinc-950 px-2 text-[11px] text-zinc-500">
-              O continuar con
-            </p>
-          </div>
+          {!isDeveloperMode && (
+            <>
+              <div className="relative py-1">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t border-zinc-800" />
+                </div>
+                <p className="relative mx-auto w-fit bg-zinc-950 px-2 text-[11px] text-zinc-500">
+                  O continuar con
+                </p>
+              </div>
 
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {/* Wrapper tipo Google Identity (mock visual para MVP). */}
-            <button
-              type="button"
-              onClick={() => handleOAuthSignIn("google")}
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#747775] bg-white px-4 text-[13px] font-medium text-[#1f1f1f] transition hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8]"
-              style={{ fontFamily: "Roboto, Arial, sans-serif" }}
-              aria-label="Continuar con Google"
-            >
-              <GoogleBrandIcon />
-              <span className="whitespace-nowrap">Continuar con Google</span>
-            </button>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={() => handleOAuthSignIn("google")}
+                  className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-[#747775] bg-white px-4 text-[13px] font-medium text-[#1f1f1f] transition hover:bg-[#f8f9fa] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1a73e8]"
+                  style={{ fontFamily: "Roboto, Arial, sans-serif" }}
+                  aria-label="Continuar con Google"
+                >
+                  <GoogleBrandIcon />
+                  <span className="whitespace-nowrap">Continuar con Google</span>
+                </button>
 
-            {/* Wrapper solicitado por Apple (`appleid-signin`). */}
-            <div
-              id="appleid-signin"
-              data-color="black"
-              data-border="true"
-              data-type="continue"
-              data-border-radius="12"
-              data-mode="center-align"
-              data-width="100%"
-              data-height="44"
-              className="w-full"
-            >
+                <div
+                  id="appleid-signin"
+                  data-color="black"
+                  data-border="true"
+                  data-type="continue"
+                  data-border-radius="12"
+                  data-mode="center-align"
+                  data-width="100%"
+                  data-height="44"
+                  className="w-full"
+                >
+                  <button
+                    type="button"
+                    onClick={() => handleOAuthSignIn("apple")}
+                    className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-black px-4 text-[13px] font-medium text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                    aria-label="Continuar con Apple"
+                  >
+                    <AppleBrandIcon />
+                    <span className="whitespace-nowrap">Continuar con Apple</span>
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="button"
-                onClick={() => handleOAuthSignIn("apple")}
-                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-black px-4 text-[13px] font-medium text-white transition hover:bg-zinc-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
-                aria-label="Continuar con Apple"
+                onClick={() => {
+                  setIsSignUp((prev) => !prev);
+                  setErrorMessage(null);
+                }}
+                className="w-full text-center text-xs text-zinc-500 transition-colors hover:text-zinc-300"
               >
-                <AppleBrandIcon />
-                <span className="whitespace-nowrap">Continuar con Apple</span>
+                {isSignUp
+                  ? "¿Ya tienes cuenta? Inicia sesión"
+                  : "¿No tienes cuenta? Regístrate"}
               </button>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setIsSignUp((prev) => !prev);
-              setErrorMessage(null);
-            }}
-            className="w-full text-center text-xs text-zinc-500 transition-colors hover:text-zinc-300"
-          >
-            {isSignUp
-              ? "¿Ya tienes cuenta? Inicia sesión"
-              : "¿No tienes cuenta? Regístrate"}
-          </button>
+            </>
+          )}
         </form>
       </div>
     </div>

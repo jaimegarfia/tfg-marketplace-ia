@@ -14,6 +14,7 @@ import {
 import { SiteHeader } from "@/components/layout/site-header";
 import { CategoryNav } from "@/components/layout/category-nav";
 import { TrustBanner } from "@/components/layout/trust-banner";
+import { MarketplaceShell } from "@/components/layout/marketplace-shell";
 import { AgentGrid } from "@/components/marketplace/agent-grid";
 import { AgentGridSkeleton } from "@/components/marketplace/agent-grid-skeleton";
 import { FilterBar } from "@/components/marketplace/filter-bar";
@@ -139,9 +140,7 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   };
 
   return (
-    <div className="relative min-h-dvh bg-[#0b0d10] text-neutral-100">
-      <div className="pointer-events-none absolute inset-0 bg-grid opacity-20 fade-edge" />
-
+    <MarketplaceShell>
       <SiteHeader
         searchQuery={filters.q}
         onSearchSubmit={handleSearchSubmit}
@@ -280,6 +279,6 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
         agente={selectedAgent}
         onClose={() => setSelectedAgent(null)}
       />
-    </div>
+    </MarketplaceShell>
   );
 }

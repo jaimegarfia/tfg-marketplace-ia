@@ -1,6 +1,7 @@
 "use client";
 
-import { Receipt, User } from "lucide-react";
+import Link from "next/link";
+import { LayoutDashboard, Receipt, User } from "lucide-react";
 import { useMockAuth } from "@/context/mock-auth-context";
 
 export function UserNav() {
@@ -10,7 +11,7 @@ export function UserNav() {
     return (
       <button
         type="button"
-        onClick={openAuthModal}
+        onClick={() => openAuthModal("buyer")}
         className="inline-flex items-center gap-2 rounded-full border border-neutral-800/80 bg-neutral-900/40 px-3 py-1.5 text-xs text-neutral-300 transition-colors hover:border-neutral-700 hover:text-neutral-100"
       >
         <User size={14} strokeWidth={1.25} aria-hidden="true" />
@@ -20,8 +21,17 @@ export function UserNav() {
   }
 
   return (
-    <div className="flex items-center gap-4">
-      {/* Historial de transacciones */}
+    <div className="flex items-center gap-2 sm:gap-3">
+      {user.role === "desarrollador" && (
+        <Link
+          href="/developer/dashboard"
+          className="hidden items-center gap-1.5 rounded-lg border border-emerald-500/25 bg-emerald-500/[0.06] px-2.5 py-1.5 text-[11px] font-medium text-emerald-300/85 transition hover:bg-emerald-500/10 md:inline-flex"
+        >
+          <LayoutDashboard size={13} strokeWidth={1.5} aria-hidden="true" />
+          Mi panel
+        </Link>
+      )}
+
       <button
         type="button"
         aria-label="Historial de transacciones"
@@ -32,13 +42,8 @@ export function UserNav() {
         <Receipt size={15} strokeWidth={1.25} aria-hidden="true" />
       </button>
 
-      {/* Separador vertical */}
-      <span
-        className="h-4 w-px bg-neutral-800"
-        aria-hidden="true"
-      />
+      <span className="h-4 w-px bg-neutral-800" aria-hidden="true" />
 
-      {/* Avatar simulado con iniciales */}
       <button
         type="button"
         aria-label="Cuenta de usuario"
@@ -53,8 +58,10 @@ export function UserNav() {
         >
           {user.name.slice(0, 2).toUpperCase()}
         </span>
-        <span className="hidden text-xs text-neutral-400 transition-colors
-                         duration-200 group-hover:text-neutral-300 sm:inline">
+        <span
+          className="hidden text-xs text-neutral-400 transition-colors
+                         duration-200 group-hover:text-neutral-300 sm:inline"
+        >
           {user.name}
         </span>
       </button>
