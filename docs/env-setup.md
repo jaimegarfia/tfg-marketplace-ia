@@ -16,6 +16,16 @@ SEED_TOKEN=
 AUTH_SECRET=
 ```
 
+## Sandbox Docker (auditoría al publicar)
+
+La publicación de activos ejecuta `docker run` con la imagen `certia-sandbox`. En Windows necesitas **Docker Desktop** en ejecución (estado «Running»).
+
+```bash
+npm run sandbox:build
+```
+
+Si ves errores del tipo `docker_engine` o `docker daemon is not running`, abre Docker Desktop y reintenta la auditoría.
+
 ## Si alguna credencial pudo haberse filtrado
 
 1. **Neon**: resetea la contraseña del rol de base de datos y actualiza `DATABASE_URL`.

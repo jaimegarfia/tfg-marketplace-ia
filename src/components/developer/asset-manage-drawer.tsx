@@ -21,6 +21,7 @@ import {
   formatearRating,
 } from "@/lib/catalog-format";
 import { AuditBadge } from "@/components/audit-badge";
+import { AssetVisualThumbnail } from "@/components/developer/asset-visual-thumbnail";
 import {
   getAssetDetailAction,
   submitAssetVersionAction,
@@ -271,23 +272,11 @@ export function AssetManageDrawer({
           ) : (
             detail && (
               <div className="mt-3 flex items-start gap-3.5 pr-8">
-                <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-neutral-800/80 bg-neutral-900/60">
-                  {detail.imagen_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={detail.imagen_url}
-                      alt=""
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <Package
-                      size={22}
-                      strokeWidth={1.25}
-                      className="text-neutral-500"
-                      aria-hidden="true"
-                    />
-                  )}
-                </div>
+                <AssetVisualThumbnail
+                  imagenUrl={detail.imagen_url}
+                  categoria={detail.categoria}
+                  size="sm"
+                />
                 <div className="min-w-0 flex-1">
                   <h2 className="truncate text-xl font-semibold tracking-tight text-neutral-50">
                     {detail.nombre}

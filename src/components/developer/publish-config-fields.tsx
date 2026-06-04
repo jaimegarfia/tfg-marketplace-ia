@@ -8,7 +8,7 @@ import {
   type DragEvent,
   type ReactNode,
 } from "react";
-import { FileJson, Upload } from "lucide-react";
+import { CheckCircle2, FileJson, Upload, X } from "lucide-react";
 import type { TipoActivo } from "@/types/database";
 import { formatJsonString } from "@/lib/publish-descriptor";
 
@@ -73,6 +73,13 @@ interface FlowDeclarativeBlockProps {
   onChange: (value: string) => void;
   disabled?: boolean;
   onSyntaxError: (message: string) => void;
+  onClearSyntaxError?: () => void;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
 export function FlowDeclarativeBlock({
@@ -80,18 +87,26 @@ export function FlowDeclarativeBlock({
   onChange,
   disabled,
   onSyntaxError,
+  onClearSyntaxError,
 }: FlowDeclarativeBlockProps) {
   const inputId = useId();
   const fileRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState<{
+    name: string;
+    size: number;
+  } | null>(null);
 
   const ingestFile = useCallback(
     async (file: File) => {
       const name = file.name.toLowerCase();
       const text = await file.text();
+      setUploadedFile({ name: file.name, size: file.size });
+
       if (name.endsWith(".json")) {
         try {
           onChange(formatJsonString(text));
+          onClearSyntaxError?.();
           return;
         } catch {
           onSyntaxError(
@@ -102,15 +117,29 @@ export function FlowDeclarativeBlock({
         }
       }
       onChange(text);
+      onClearSyntaxError?.();
     },
-    [onChange, onSyntaxError],
+    [onChange, onClearSyntaxError, onSyntaxError],
   );
 
   const handleFormat = () => {
     try {
       onChange(formatJsonString(value));
+      onClearSyntaxError?.();
     } catch {
       onSyntaxError("Error de sintaxis: el JSON no es válido.");
+    }
+  };
+
+  const handleEditorChange = (next: string) => {
+    onChange(next);
+    onClearSyntaxError?.();
+  };
+
+  const clearUploadedFile = () => {
+    setUploadedFile(null);
+    if (fileRef.current) {
+      fileRef.current.value = "";
     }
   };
 
@@ -188,7 +217,47 @@ export function FlowDeclarativeBlock({
           className="text-neutral-600"
           aria-hidden="true"
         />
+        {!uploadedFile && (
+          <p className="text-[11px] text-neutral-600">
+            El contenido aparecerá en el editor inferior.
+          </p>
+        )}
       </div>
+
+      {uploadedFile && (
+        <div
+          className="flex items-center justify-between gap-3 rounded-lg border border-emerald-500/25 bg-emerald-500/10 px-3 py-2.5"
+          role="status"
+        >
+          <div className="flex min-w-0 items-center gap-2">
+            <CheckCircle2
+              size={16}
+              className="shrink-0 text-emerald-400/90"
+              aria-hidden="true"
+            />
+            <div className="min-w-0">
+              <p className="truncate text-sm font-medium text-emerald-200/90">
+                Archivo cargado: {uploadedFile.name}
+              </p>
+              <p className="text-[11px] text-neutral-500">
+                {formatFileSize(uploadedFile.size)} · contenido en el editor
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              clearUploadedFile();
+            }}
+            className="shrink-0 rounded-md p-1 text-neutral-500 transition hover:bg-neutral-800 hover:text-neutral-300 disabled:opacity-50"
+            aria-label="Quitar referencia del archivo"
+          >
+            <X size={14} aria-hidden="true" />
+          </button>
+        </div>
+      )}
 
       <IdePanel
         tabLabel="descriptor_flujo.json"
@@ -202,7 +271,7 @@ export function FlowDeclarativeBlock({
           disabled={disabled}
           spellCheck={false}
           rows={14}
-          onChange={(event) => onChange(event.target.value)}
+          onChange={(event) => handleEditorChange(event.target.value)}
           className="ide-scroll min-h-[280px] w-full resize-y border-0 bg-black px-3 py-3 font-mono text-sm leading-relaxed text-neutral-200 outline-none placeholder:text-neutral-700 focus:ring-0"
           placeholder='{ "workflow": { "engine": "n8n", "steps": [] } }'
         />
@@ -218,6 +287,7 @@ interface RuntimeContainerBlockProps {
   onManifestJsonChange: (value: string) => void;
   disabled?: boolean;
   onSyntaxError: (message: string) => void;
+  onClearSyntaxError?: () => void;
 }
 
 export function RuntimeContainerBlock({
@@ -227,10 +297,12 @@ export function RuntimeContainerBlock({
   onManifestJsonChange,
   disabled,
   onSyntaxError,
+  onClearSyntaxError,
 }: RuntimeContainerBlockProps) {
   const handleFormatManifest = () => {
     try {
       onManifestJsonChange(formatJsonString(manifestJson));
+      onClearSyntaxError?.();
     } catch {
       onSyntaxError("Error de sintaxis: el manifiesto JSON no es válido.");
     }
@@ -274,7 +346,10 @@ export function RuntimeContainerBlock({
             disabled={disabled}
             spellCheck={false}
             rows={8}
-            onChange={(event) => onManifestJsonChange(event.target.value)}
+            onChange={(event) => {
+              onManifestJsonChange(event.target.value);
+              onClearSyntaxError?.();
+            }}
             className="ide-scroll min-h-[160px] w-full resize-y border-0 bg-black px-3 py-3 font-mono text-sm leading-relaxed text-neutral-200 outline-none placeholder:text-neutral-700 focus:ring-0"
             placeholder='{ "env": { "LOG_LEVEL": "info" }, "resources": { "memory": "128m" } }'
           />
@@ -294,6 +369,7 @@ interface PublishConfigByTipoProps {
   onManifestJsonChange: (value: string) => void;
   disabled?: boolean;
   onSyntaxError: (message: string) => void;
+  onClearSyntaxError?: () => void;
 }
 
 export function PublishConfigByTipo({
@@ -306,6 +382,7 @@ export function PublishConfigByTipo({
   onManifestJsonChange,
   disabled,
   onSyntaxError,
+  onClearSyntaxError,
 }: PublishConfigByTipoProps) {
   if (tipoActivo === "reference_architecture") {
     return (
@@ -314,6 +391,7 @@ export function PublishConfigByTipo({
         onChange={onFlowDescriptorChange}
         disabled={disabled}
         onSyntaxError={onSyntaxError}
+        onClearSyntaxError={onClearSyntaxError}
       />
     );
   }
@@ -326,6 +404,7 @@ export function PublishConfigByTipo({
       onManifestJsonChange={onManifestJsonChange}
       disabled={disabled}
       onSyntaxError={onSyntaxError}
+      onClearSyntaxError={onClearSyntaxError}
     />
   );
 }

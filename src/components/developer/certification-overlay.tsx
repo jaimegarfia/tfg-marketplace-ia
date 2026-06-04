@@ -68,9 +68,10 @@ interface CertificationOverlayProps {
   title?: string;
 }
 
-export function CertificationOverlay({
+/** Barra de progreso integrada en el formulario (sin pantalla negra a pantalla completa). */
+export function CertificationProgressCard({
   phaseIndex,
-  title = "Motor de certificación Zero Trust",
+  title = "Auditoría en curso",
 }: CertificationOverlayProps) {
   const safeIndex = Math.min(
     Math.max(phaseIndex, 0),
@@ -79,47 +80,49 @@ export function CertificationOverlay({
 
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="certification-overlay-title"
+      role="status"
       aria-live="polite"
-      className="absolute inset-0 z-20 flex items-center justify-center bg-neutral-950/90 px-4 backdrop-blur-sm"
+      aria-labelledby="certification-progress-title"
+      className="rounded-xl border border-emerald-500/20 bg-emerald-500/[0.05] p-4"
     >
-      <div className="w-full max-w-lg rounded-xl border border-neutral-800/80 bg-neutral-950 p-6 shadow-2xl shadow-black/40">
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-neutral-700 border-t-emerald-400"
-            aria-hidden="true"
+      <div className="flex items-start gap-3">
+        <span
+          className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-neutral-700 border-t-emerald-400"
+          aria-hidden="true"
+        />
+        <div className="min-w-0 flex-1">
+          <p
+            id="certification-progress-title"
+            className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80"
+          >
+            {title}
+          </p>
+          <p
+            key={safeIndex}
+            className="mt-2 text-sm leading-relaxed text-neutral-300"
+          >
+            {CERTIFICATION_PHASES[safeIndex]}
+          </p>
+        </div>
+      </div>
+      <div
+        className="mt-4 flex gap-1.5"
+        aria-label={`Fase ${safeIndex + 1} de ${CERTIFICATION_PHASES.length}`}
+      >
+        {CERTIFICATION_PHASES.map((_, index) => (
+          <div
+            key={index}
+            className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
+              index <= safeIndex ? "bg-emerald-500/80" : "bg-neutral-800"
+            }`}
           />
-          <div className="min-w-0 flex-1">
-            <p
-              id="certification-overlay-title"
-              className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80"
-            >
-              {title}
-            </p>
-            <p
-              key={safeIndex}
-              className="mt-2 animate-fade-up text-sm leading-relaxed text-neutral-200"
-            >
-              {CERTIFICATION_PHASES[safeIndex]}
-            </p>
-          </div>
-        </div>
-        <div
-          className="mt-5 flex gap-1.5"
-          aria-label={`Fase ${safeIndex + 1} de ${CERTIFICATION_PHASES.length}`}
-        >
-          {CERTIFICATION_PHASES.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
-                index <= safeIndex ? "bg-emerald-500/80" : "bg-neutral-800"
-              }`}
-            />
-          ))}
-        </div>
+        ))}
       </div>
     </div>
   );
+}
+
+/** @deprecated Usar CertificationProgressCard en el flujo de publicación. */
+export function CertificationOverlay(props: CertificationOverlayProps) {
+  return <CertificationProgressCard {...props} />;
 }

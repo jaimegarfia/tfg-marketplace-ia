@@ -193,6 +193,7 @@ async function getDeveloperMetrics(
           SELECT COUNT(*)::int
           FROM agentes
           WHERE desarrollador_id = $1::uuid
+            AND estado_auditoria = 'certificado'
         ), 0) AS total_agentes
     `,
     [developerId],
@@ -237,6 +238,7 @@ async function getDeveloperAgentes(
         LIMIT 1
       ) au ON true
       WHERE a.desarrollador_id = $1::uuid
+        AND a.estado_auditoria = 'certificado'
       ORDER BY a.created_at DESC, a.nombre ASC
     `,
     [developerId],

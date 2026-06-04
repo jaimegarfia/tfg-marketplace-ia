@@ -5,6 +5,7 @@ import {
   isAssetVisualIconId,
   type AssetVisualIconId,
 } from "@/lib/asset-visual-icons";
+import type { AuditFailureKind } from "@/lib/audit-engine";
 import type {
   ApprovedPermissions,
   CategoriaAgente,
@@ -34,8 +35,9 @@ export interface PublishAssetResult {
   hashIntegridad: string;
   vulnerabilidadesDetectadas: number;
   logsSandbox: string;
-  permisosAprobados: ApprovedPermissions;
+  permisosAprobados: ApprovedPermissions | null;
   fechaEjecucion: string;
+  failureKind: AuditFailureKind;
 }
 
 const VALID_TIPOS: ReadonlySet<TipoActivo> = new Set([
@@ -280,37 +282,56 @@ export async function publishDeveloperAsset(
     throw new Error(`La auditoría en contenedor falló: ${detail}`);
   }
 
-  const estadoAuditoria: EstadoAuditoria = engine.resultado_global
-    ? "certificado"
-    : "rechazado";
   const fechaEjecucion = new Date().toISOString();
+
+  if (!engine.resultado_global) {
+    return {
+      agenteId: "",
+      nombre: input.nombre.trim(),
+      estadoAuditoria: "rechazado",
+      resultadoGlobal: false,
+      hashIntegridad: engine.hash_integridad,
+      vulnerabilidadesDetectadas: engine.vulnerabilidades_detectadas,
+      logsSandbox: engine.logs_sandbox,
+      permisosAprobados: engine.permisos_aprobados,
+      fechaEjecucion,
+      failureKind: engine.failureKind,
+    };
+  }
+
+  const permisosAprobados = engine.permisos_aprobados;
+  if (!permisosAprobados) {
+    throw new Error(
+      "La auditoría certificó el activo pero no devolvió permisos del sandbox.",
+    );
+  }
 
   let agenteId: string;
   try {
     agenteId = await withTransaction(async (client) => {
-    const id = await insertAuditedAsset(client, input, {
-      resultado_global: engine.resultado_global,
-      hash_integridad: engine.hash_integridad,
-      estadoAuditoria,
-    });
-
-    await persistDeveloperEstudio(
-      client,
-      input.developerId,
-      input.estudioComercial,
-    );
-
-    await insertAuditoria(
-      client,
-      id,
-      {
+      const id = await insertAuditedAsset(client, input, {
         resultado_global: engine.resultado_global,
-        logs_sandbox: engine.logs_sandbox,
-        vulnerabilidades_detectadas: engine.vulnerabilidades_detectadas,
-        permisos_aprobados: engine.permisos_aprobados,
-      },
-      fechaEjecucion,
-    );
+        hash_integridad: engine.hash_integridad,
+        estadoAuditoria: "certificado",
+      });
+
+      await persistDeveloperEstudio(
+        client,
+        input.developerId,
+        input.estudioComercial,
+      );
+
+      await insertAuditoria(
+        client,
+        id,
+        {
+          resultado_global: engine.resultado_global,
+          logs_sandbox: engine.logs_sandbox,
+          vulnerabilidades_detectadas: engine.vulnerabilidades_detectadas,
+          permisos_aprobados: permisosAprobados,
+        },
+        fechaEjecucion,
+      );
 
       return id;
     });
@@ -323,12 +344,13 @@ export async function publishDeveloperAsset(
   return {
     agenteId,
     nombre: input.nombre.trim(),
-    estadoAuditoria,
-    resultadoGlobal: engine.resultado_global,
+    estadoAuditoria: "certificado",
+    resultadoGlobal: true,
     hashIntegridad: engine.hash_integridad,
     vulnerabilidadesDetectadas: engine.vulnerabilidades_detectadas,
     logsSandbox: engine.logs_sandbox,
-    permisosAprobados: engine.permisos_aprobados,
+    permisosAprobados,
     fechaEjecucion,
+    failureKind: engine.failureKind,
   };
 }

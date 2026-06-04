@@ -65,8 +65,9 @@ export interface SubmitVersionResult {
   hashIntegridad: string;
   vulnerabilidadesDetectadas: number;
   logsSandbox: string;
-  permisosAprobados: ApprovedPermissions;
+  permisosAprobados: ApprovedPermissions | null;
   fechaEjecucion: string;
+  failureKind: import("@/lib/audit-engine").AuditFailureKind;
 }
 
 const DEMO_EMPRESAS = [
@@ -475,7 +476,18 @@ export async function submitDeveloperAssetVersion(
           engine.resultado_global,
           engine.logs_sandbox,
           engine.vulnerabilidades_detectadas,
-          JSON.stringify(engine.permisos_aprobados),
+          JSON.stringify(
+            engine.permisos_aprobados ?? {
+              read_filesystem: false,
+              network_access: false,
+              allowed_domains: [],
+              custom_scripts: {
+                enabled: false,
+                inline_code_detected: false,
+                execution_engines: ["none"],
+              },
+            },
+          ),
           fechaEjecucion,
         ],
       );
@@ -494,5 +506,6 @@ export async function submitDeveloperAssetVersion(
     logsSandbox: engine.logs_sandbox,
     permisosAprobados: engine.permisos_aprobados,
     fechaEjecucion,
+    failureKind: engine.failureKind,
   };
 }

@@ -45,12 +45,21 @@ export interface ApprovedPermissions {
 /**
  * Salida directa del motor para persistencia en `auditorias` (v2.0).
  */
+export type AuditFailureKind = "none" | "infrastructure" | "security";
+
 export interface SimulatedAuditRecord {
   resultado_global: boolean;
   logs_sandbox: string;
   vulnerabilidades_detectadas: number;
-  permisos_aprobados: ApprovedPermissions;
+  permisos_aprobados: ApprovedPermissions | null;
   hash_integridad: string;
+  failureKind: AuditFailureKind;
+}
+
+function isInfrastructureError(message: string): boolean {
+  return /docker daemon|docker_engine|cannot connect to the docker|fallo al ejecutar el sandbox docker|certia-sandbox no devolvió|unable to find image|pull access denied|ENOENT/i.test(
+    message,
+  );
 }
 
 interface SandboxInputPayload {
@@ -362,6 +371,7 @@ export async function runSimulatedAuditEngine(
       vulnerabilidades_detectadas,
       permisos_aprobados,
       hash_integridad,
+      failureKind: resultado_global ? "none" : "security",
     };
   } catch (error) {
     const isTimeoutOrBufferBreach =
@@ -370,11 +380,16 @@ export async function runSimulatedAuditEngine(
     const errorMessage =
       error instanceof Error ? error.message : "Error desconocido en sandbox.";
 
+    const infrastructure =
+      isTimeoutOrBufferBreach || isInfrastructureError(errorMessage);
+
     const logs_sandbox = isTimeoutOrBufferBreach
       ? TIMEOUT_FAIL_LOG
       : [
           `[FAIL] sandbox_isolation: ${errorMessage}`,
-          "[FAIL] sandbox_isolation: El activo fue rechazado por error crítico durante la auditoría.",
+          infrastructure
+            ? "[FAIL] sandbox_isolation: La auditoría no se completó por un fallo del entorno (Docker/sandbox), no por el descriptor del activo."
+            : "[FAIL] sandbox_isolation: El activo fue rechazado por superficie de riesgo detectada en el descriptor.",
         ].join("\n");
 
     await updateAgenteAuditState(input.assetId, false);
@@ -382,9 +397,10 @@ export async function runSimulatedAuditEngine(
     return {
       resultado_global: false,
       logs_sandbox,
-      vulnerabilidades_detectadas: 1,
-      permisos_aprobados: buildDeniedPermissions(),
+      vulnerabilidades_detectadas: infrastructure ? 0 : 1,
+      permisos_aprobados: infrastructure ? null : buildDeniedPermissions(),
       hash_integridad,
+      failureKind: infrastructure ? "infrastructure" : "security",
     };
   } finally {
     if (tempInputPath) {

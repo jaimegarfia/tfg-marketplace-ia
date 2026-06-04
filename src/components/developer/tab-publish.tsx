@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useCallback, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   Box,
   CheckCircle2,
@@ -19,6 +19,10 @@ import {
 import { AssetVisualIconPicker } from "@/components/developer/asset-visual-icon-picker";
 import { CATEGORIAS_AGENTE, etiquetaCategoria } from "@/lib/catalog-format";
 import { validatePublishConfig } from "@/lib/publish-descriptor";
+import {
+  extractSandboxFailureReasons,
+  getInfrastructureFailureHint,
+} from "@/lib/sandbox-log-parse";
 import { VerifiedPermissionsScope } from "@/components/verified-permissions-scope";
 import {
   publishAssetAction,
@@ -26,9 +30,13 @@ import {
 } from "@/app/developer/dashboard/actions";
 import type { PublishAssetResult } from "@/lib/developer-publish";
 import {
-  CertificationOverlay,
+  CertificationProgressCard,
   runCertificationPhasesDuring,
 } from "@/components/developer/certification-overlay";
+import {
+  PublishSuccessActions,
+  PublishSuccessPanel,
+} from "@/components/developer/publish-success-panel";
 import { PublishConfigByTipo } from "@/components/developer/publish-config-fields";
 import { PostAuditCatalogPanel } from "@/components/developer/post-audit-catalog-panel";
 
@@ -177,11 +185,30 @@ function SecurityPipeline() {
   );
 }
 
-function AuditResultPanel({ result }: { result: PublishAssetResult }) {
+function AuditResultPanel({
+  result,
+  onRetry,
+}: {
+  result: PublishAssetResult;
+  onRetry?: () => void;
+}) {
   const certified = result.resultadoGlobal;
+  const infrastructureFailure = result.failureKind === "infrastructure";
+  const failureReasons = certified
+    ? []
+    : extractSandboxFailureReasons(result.logsSandbox);
+  const infraHint = infrastructureFailure
+    ? getInfrastructureFailureHint(result.logsSandbox)
+    : null;
 
   return (
-    <div className="space-y-4 rounded-xl border border-neutral-800/80 bg-neutral-950/40 p-5">
+    <div
+      className={`space-y-4 rounded-xl border p-5 ${
+        certified
+          ? "border-neutral-800/80 bg-neutral-950/40"
+          : "border-red-500/25 bg-red-500/[0.04]"
+      }`}
+    >
       <div className="flex items-start gap-3">
         {certified ? (
           <CheckCircle2
@@ -202,15 +229,63 @@ function AuditResultPanel({ result }: { result: PublishAssetResult }) {
           <h3 className="text-base font-medium text-neutral-100">
             {certified
               ? "Activo certificado y publicado"
-              : "Activo rechazado por el sandbox"}
+              : infrastructureFailure
+                ? "No se pudo ejecutar la auditoría"
+                : "Activo rechazado por el sandbox"}
           </h3>
           <p className="mt-1 text-sm text-neutral-500">
             {certified
               ? `${result.nombre} ya está disponible en el marketplace.`
-              : "El motor detectó superficie de riesgo. Revisa los logs y reajusta el descriptor."}
+              : infrastructureFailure
+                ? "El fallo es del entorno (Docker/sandbox), no de tu descriptor. Tu activo no se ha guardado en el catálogo."
+                : "Corrige el descriptor o la configuración técnica abajo y vuelve a enviar. El activo no se ha añadido al catálogo."}
           </p>
         </div>
       </div>
+
+      {!certified && (
+        <div className="space-y-3">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-red-400/80">
+            {infrastructureFailure ? "Qué ha ocurrido" : "Por qué ha fallado"}
+          </p>
+          {infraHint && (
+            <p className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-3 text-sm leading-relaxed text-amber-100/90">
+              {infraHint}
+            </p>
+          )}
+          {failureReasons.length > 0 && (
+            <ul className="space-y-2 rounded-lg border border-red-500/20 bg-red-500/5 px-3 py-3 text-sm leading-relaxed text-red-200/90">
+              {failureReasons.map((reason) => (
+                <li key={reason} className="list-disc pl-4 marker:text-red-400/60">
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          )}
+          {!infraHint && failureReasons.length === 0 && (
+            <p className="text-sm text-neutral-400">
+              El sandbox detectó riesgo en el descriptor. Revisa los logs
+              completos para localizar permisos de red, filesystem o scripts
+              dinámicos no permitidos.
+            </p>
+          )}
+          {onRetry && !infrastructureFailure && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="inline-flex items-center justify-center rounded-lg border border-neutral-600 bg-neutral-900 px-4 py-2 text-sm font-medium text-neutral-100 transition hover:border-neutral-500 hover:bg-neutral-800"
+            >
+              Corregir descriptor y reintentar
+            </button>
+          )}
+          {infrastructureFailure && (
+            <p className="text-xs text-neutral-600">
+              Tras arrancar Docker (y construir la imagen si hace falta), pulsa
+              de nuevo «Enviar a auditoría y publicar» sin cambiar el descriptor.
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid gap-3 sm:grid-cols-3">
         <div className="rounded-lg border border-neutral-800/60 bg-[var(--surface)] px-3 py-2.5">
@@ -228,7 +303,9 @@ function AuditResultPanel({ result }: { result: PublishAssetResult }) {
             Vulnerabilidades
           </p>
           <p className="mt-1 font-mono text-sm text-neutral-200">
-            {result.vulnerabilidadesDetectadas}
+            {infrastructureFailure && !certified
+              ? "—"
+              : result.vulnerabilidadesDetectadas}
           </p>
         </div>
         <div className="rounded-lg border border-neutral-800/60 bg-[var(--surface)] px-3 py-2.5">
@@ -241,9 +318,23 @@ function AuditResultPanel({ result }: { result: PublishAssetResult }) {
         </div>
       </div>
 
-      <div>
-        <VerifiedPermissionsScope permisos={result.permisosAprobados} embedded />
-      </div>
+      {certified && result.permisosAprobados && (
+        <div>
+          <VerifiedPermissionsScope
+            permisos={result.permisosAprobados}
+            embedded
+          />
+        </div>
+      )}
+
+      {!certified && !infrastructureFailure && result.permisosAprobados && (
+        <div>
+          <VerifiedPermissionsScope
+            permisos={result.permisosAprobados}
+            embedded
+          />
+        </div>
+      )}
 
       <div className="space-y-2">
         <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
@@ -258,7 +349,13 @@ function AuditResultPanel({ result }: { result: PublishAssetResult }) {
         <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
           Logs del sandbox
         </p>
-        <pre className="max-h-72 overflow-auto rounded-lg border border-neutral-800/60 bg-neutral-900/50 p-4 font-mono text-[11px] leading-relaxed text-neutral-400">
+        <pre
+          className={`max-h-80 overflow-auto rounded-lg border p-4 font-mono text-[11px] leading-relaxed ${
+            certified
+              ? "border-neutral-800/60 bg-neutral-900/50 text-neutral-400"
+              : "border-red-500/20 bg-neutral-950 text-neutral-300"
+          }`}
+        >
           {result.logsSandbox}
         </pre>
       </div>
@@ -309,6 +406,26 @@ export function TabPublish({
   const [result, setResult] = useState<PublishAssetResult | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
+  const auditResultRef = useRef<HTMLDivElement>(null);
+  const successResultRef = useRef<HTMLDivElement>(null);
+  const technicalConfigRef = useRef<HTMLDivElement>(null);
+  const [savedAdmiteAdaptacion, setSavedAdmiteAdaptacion] = useState(false);
+  const [deploymentGuideSaved, setDeploymentGuideSaved] = useState(false);
+
+  const scrollToTechnicalConfig = useCallback(() => {
+    technicalConfigRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!result) return;
+    const target = result.resultadoGlobal
+      ? successResultRef.current
+      : auditResultRef.current;
+    target?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [result]);
 
   const setField = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -316,6 +433,10 @@ export function TabPublish({
 
   const showSyntaxToast = useCallback((message: string) => {
     setToast({ message, variant: "error" });
+  }, []);
+
+  const clearSyntaxToast = useCallback(() => {
+    setToast(null);
   }, []);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -378,15 +499,12 @@ export function TabPublish({
       }
 
       setResult(response.result);
-      setForm((prev) => ({
-        ...INITIAL_FORM,
-        tipoActivo: prev.tipoActivo,
-        flowDescriptor: prev.flowDescriptor,
-        imageRegistryUri: prev.imageRegistryUri,
-        manifestJson: prev.manifestJson,
-      }));
-      router.refresh();
-      onPublished();
+
+      if (response.result.resultadoGlobal) {
+        setSavedAdmiteAdaptacion(form.admiteAdaptacion);
+        setDeploymentGuideSaved(false);
+        router.refresh();
+      }
     } catch (cause) {
       setError(
         cause instanceof Error
@@ -399,11 +517,22 @@ export function TabPublish({
   };
 
   const tipoResolved = form.tipoActivo !== "";
+  const publishSucceeded = result?.resultadoGlobal === true;
+
+  const handlePublishAnother = () => {
+    setResult(null);
+    setSavedAdmiteAdaptacion(false);
+    setDeploymentGuideSaved(false);
+    setForm({
+      ...INITIAL_FORM,
+      estudioComercial: defaultEstudioComercial?.trim() ?? "",
+    });
+    setError(null);
+    setToast(null);
+  };
 
   return (
     <div className="space-y-6">
-      {isAuditing && <CertificationOverlay phaseIndex={phaseIndex} />}
-
       <div>
         <h2 className="text-lg font-semibold tracking-tight text-neutral-100">
           Publicar nuevo activo
@@ -416,10 +545,43 @@ export function TabPublish({
 
       <SecurityPipeline />
 
+      {publishSucceeded && result && (
+        <div ref={successResultRef} className="space-y-5">
+          <PublishSuccessPanel result={result} />
+          {result.agenteId ? (
+            <PostAuditCatalogPanel
+              agenteId={result.agenteId}
+              agenteNombre={result.nombre}
+              initialAdmiteAdaptacion={savedAdmiteAdaptacion}
+              onSaved={() => {
+                setDeploymentGuideSaved(true);
+                router.refresh();
+              }}
+            />
+          ) : null}
+          {deploymentGuideSaved ? (
+            <PublishSuccessActions
+              onViewSummary={onPublished}
+              onPublishAnother={handlePublishAnother}
+            />
+          ) : (
+            <p className="rounded-lg border border-amber-500/20 bg-amber-500/[0.06] px-4 py-3 text-sm text-amber-100/90">
+              Guarda las instrucciones de despliegue (mín. 40 caracteres) para
+              poder ver el activo en el resumen o publicar otro.
+            </p>
+          )}
+        </div>
+      )}
+
+      {!publishSucceeded && (
       <form
         onSubmit={handleSubmit}
         className="space-y-5 rounded-xl border border-neutral-800/80 bg-neutral-950/30 p-5 sm:p-6"
       >
+        {isAuditing && (
+          <CertificationProgressCard phaseIndex={phaseIndex} />
+        )}
+
         <div className="rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] p-4">
           <label htmlFor="pub-tipo" className={LABEL_CLASS}>
             Tipo de activo
@@ -454,6 +616,39 @@ export function TabPublish({
         </div>
 
         <div className="space-y-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+            Identidad del activo
+          </p>
+          <div className="space-y-1.5">
+            <label htmlFor="pub-nombre" className={LABEL_CLASS}>
+              Nombre del activo
+            </label>
+            <input
+              id="pub-nombre"
+              value={form.nombre}
+              disabled={isAuditing}
+              onChange={(event) => setField("nombre", event.target.value)}
+              placeholder="Ej. Sentinel Runtime Guard"
+              className={FIELD_CLASS}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <label htmlFor="pub-desc" className={LABEL_CLASS}>
+              Descripción comercial
+            </label>
+            <textarea
+              id="pub-desc"
+              rows={2}
+              value={form.descripcion}
+              disabled={isAuditing}
+              onChange={(event) => setField("descripcion", event.target.value)}
+              placeholder="Qué hace el agente y para qué casos de uso está pensado."
+              className={`${FIELD_CLASS} resize-y`}
+            />
+          </div>
+        </div>
+
+        <div className="space-y-4">
           <div className="space-y-1.5 sm:max-w-xs">
             <label htmlFor="pub-categoria" className={LABEL_CLASS}>
               Categoría
@@ -482,6 +677,7 @@ export function TabPublish({
           />
         </div>
 
+        <div ref={technicalConfigRef}>
         {tipoResolved ? (
           <PublishConfigByTipo
             tipoActivo={form.tipoActivo as TipoActivo}
@@ -495,12 +691,26 @@ export function TabPublish({
             onManifestJsonChange={(value) => setField("manifestJson", value)}
             disabled={isAuditing}
             onSyntaxError={showSyntaxToast}
+            onClearSyntaxError={clearSyntaxToast}
           />
         ) : (
           <p className="rounded-lg border border-dashed border-zinc-800/80 px-4 py-6 text-center text-sm text-neutral-600">
             Selecciona un tipo de activo arriba para mostrar la configuración
             técnica.
           </p>
+        )}
+        </div>
+
+        {result && !result.resultadoGlobal && (
+          <div ref={auditResultRef}>
+            <AuditResultPanel
+              result={result}
+              onRetry={() => {
+                setResult(null);
+                scrollToTechnicalConfig();
+              }}
+            />
+          </div>
         )}
 
         {toast && (
@@ -513,35 +723,6 @@ export function TabPublish({
           </p>
 
           <div className="space-y-4">
-            <div className="space-y-1.5">
-              <label htmlFor="pub-nombre" className={LABEL_CLASS}>
-                Nombre del activo
-              </label>
-              <input
-                id="pub-nombre"
-                value={form.nombre}
-                disabled={isAuditing}
-                onChange={(event) => setField("nombre", event.target.value)}
-                placeholder="Ej. Sentinel Runtime Guard"
-                className={FIELD_CLASS}
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label htmlFor="pub-desc" className={LABEL_CLASS}>
-                Descripción comercial
-              </label>
-              <textarea
-                id="pub-desc"
-                rows={2}
-                value={form.descripcion}
-                disabled={isAuditing}
-                onChange={(event) => setField("descripcion", event.target.value)}
-                placeholder="Qué hace el agente y para qué casos de uso está pensado."
-                className={`${FIELD_CLASS} resize-y`}
-              />
-            </div>
-
             <div className="space-y-1.5">
               <label htmlFor="pub-estudio" className={LABEL_CLASS}>
                 Nombre del estudio / firma comercial
@@ -645,16 +826,6 @@ export function TabPublish({
           )}
         </button>
       </form>
-
-      {result && <AuditResultPanel result={result} />}
-
-      {result?.resultadoGlobal && (
-        <PostAuditCatalogPanel
-          agenteId={result.agenteId}
-          agenteNombre={result.nombre}
-          initialAdmiteAdaptacion={form.admiteAdaptacion}
-          onSaved={() => router.refresh()}
-        />
       )}
     </div>
   );

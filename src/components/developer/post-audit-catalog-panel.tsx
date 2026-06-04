@@ -93,8 +93,9 @@ export function PostAuditCatalogPanel({
             Completar publicación en catálogo
           </h3>
           <p className="mt-1 text-sm leading-relaxed text-neutral-500">
-            Tras la certificación, documenta cómo preparar, desplegar y ejecutar
-            este activo. Aparecerá en la guía de despliegue del marketplace.
+            Paso obligatorio antes de ver el activo en el resumen o publicar otro.
+            Documenta cómo preparar, desplegar y ejecutar {agenteNombre}; aparecerá
+            en la guía de despliegue del marketplace.
           </p>
         </div>
       </div>
