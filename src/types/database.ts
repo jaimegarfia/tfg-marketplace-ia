@@ -141,6 +141,17 @@ export interface Transaccion {
   created_at: string;
 }
 
+/** Tabla `valoraciones` (reseñas de compradores en el marketplace). */
+export interface Valoracion {
+  id: string;
+  agente_id: string;
+  usuario_nombre: string;
+  empresa_nombre: string | null;
+  puntuacion: number;
+  comentario: string;
+  created_at: string;
+}
+
 /** Tabla `servicios_fine_tuning`. */
 export interface ServicioFineTuning {
   id: string;

@@ -10,6 +10,17 @@ import {
   type DeveloperDashboardData,
 } from "@/lib/developer-dashboard";
 import {
+  getDeveloperAssetDetail,
+  submitDeveloperAssetVersion,
+  updateDeveloperAsset,
+  validateUpdateAssetInput,
+  validateVersionInput,
+  type DeveloperAssetDetail,
+  type SubmitVersionResult,
+  type UpdateAssetInput,
+  type SubmitVersionInput,
+} from "@/lib/developer-asset";
+import {
   publishDeveloperAsset,
   validatePublishInput,
   type PublishAssetResult,
@@ -146,6 +157,109 @@ export async function publishAssetAction(
   } catch (error) {
     const detail =
       error instanceof Error ? error.message : "Error desconocido al publicar.";
+    return { ok: false, error: detail };
+  }
+}
+
+async function resolveSessionDeveloper(): Promise<
+  { ok: true; developer: { id: string; email: string } } | { ok: false; error: string }
+> {
+  const cookieStore = await cookies();
+  const email = cookieStore.get(DEVELOPER_COOKIE)?.value;
+  if (!email) {
+    return { ok: false, error: "Sesión de desarrollador no encontrada." };
+  }
+
+  const developer = await resolveDeveloperByEmail(email);
+  if (!developer) {
+    return { ok: false, error: "Desarrollador no autorizado." };
+  }
+
+  return { ok: true, developer };
+}
+
+export async function getAssetDetailAction(
+  agenteId: string,
+): Promise<
+  { ok: true; detail: DeveloperAssetDetail } | { ok: false; error: string }
+> {
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) return session;
+
+  try {
+    const detail = await getDeveloperAssetDetail(
+      session.developer.id,
+      agenteId,
+    );
+    if (!detail) {
+      return { ok: false, error: "Activo no encontrado o sin permisos." };
+    }
+    return { ok: true, detail };
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error al cargar el activo.";
+    return { ok: false, error: detail };
+  }
+}
+
+export async function updateAssetAction(
+  agenteId: string,
+  input: UpdateAssetInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) return session;
+
+  const validation = validateUpdateAssetInput(input);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
+  }
+
+  try {
+    const updated = await updateDeveloperAsset(
+      session.developer.id,
+      agenteId,
+      input,
+    );
+    if (!updated) {
+      return { ok: false, error: "Activo no encontrado o sin permisos." };
+    }
+    revalidatePath("/developer/dashboard");
+    return { ok: true };
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error al actualizar el activo.";
+    return { ok: false, error: detail };
+  }
+}
+
+export async function submitAssetVersionAction(
+  agenteId: string,
+  input: SubmitVersionInput,
+): Promise<
+  { ok: true; result: SubmitVersionResult } | { ok: false; error: string }
+> {
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) return session;
+
+  const validation = validateVersionInput(input);
+  if (!validation.ok) {
+    return { ok: false, error: validation.error };
+  }
+
+  try {
+    const result = await submitDeveloperAssetVersion(
+      session.developer.id,
+      agenteId,
+      input,
+    );
+    if (!result) {
+      return { ok: false, error: "Activo no encontrado o sin permisos." };
+    }
+    revalidatePath("/developer/dashboard");
+    return { ok: true, result };
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error al publicar la versión.";
     return { ok: false, error: detail };
   }
 }

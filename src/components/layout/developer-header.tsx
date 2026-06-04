@@ -30,7 +30,7 @@ export function DeveloperHeader({
   };
 
   return (
-    <header className="sticky top-0 z-30 border-b border-neutral-800/80 bg-[#0b0d10]/95 backdrop-blur-md">
+    <header className="border-b border-neutral-800/80 bg-[#0b0d10]/95">
       <div className="mx-auto flex max-w-[1400px] items-center justify-between gap-3 px-4 py-3 sm:gap-4 sm:px-6">
         <div className="flex min-w-0 items-center gap-2.5 sm:gap-3">
           <Link

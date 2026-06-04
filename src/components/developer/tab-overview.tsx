@@ -21,6 +21,7 @@ interface TabOverviewProps {
   developerName: string;
   agentes: DeveloperAgenteRow[];
   onPublishClick: () => void;
+  onSelectAsset: (agenteId: string) => void;
 }
 
 function formatUsd(value: number): string {
@@ -75,6 +76,7 @@ export function TabOverview({
   developerName,
   agentes,
   onPublishClick,
+  onSelectAsset,
 }: TabOverviewProps) {
   const [logsAgent, setLogsAgent] = useState<DeveloperAgenteRow | null>(null);
 
@@ -129,7 +131,8 @@ export function TabOverview({
             Activos publicados
           </h3>
           <span className="text-xs text-neutral-500">
-            {agentes.length} {agentes.length === 1 ? "activo" : "activos"}
+            {agentes.length} {agentes.length === 1 ? "activo" : "activos"} · clic
+            para gestionar
           </span>
         </div>
 
@@ -153,13 +156,14 @@ export function TabOverview({
                   <th className="px-4 py-3 font-mono text-[10px] uppercase tracking-widest text-neutral-500">
                     Auditoría
                   </th>
+                  <th className="w-10 px-2 py-3" aria-hidden="true" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-800/50">
                 {agentes.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={5}
+                      colSpan={6}
                       className="px-4 py-12 text-center text-sm text-neutral-500"
                     >
                       Todavía no has publicado activos. Usa{" "}
@@ -177,7 +181,8 @@ export function TabOverview({
                   agentes.map((agente) => (
                     <tr
                       key={agente.id}
-                      className="transition-colors hover:bg-neutral-900/30"
+                      className="cursor-pointer transition-colors hover:bg-neutral-900/40"
+                      onClick={() => onSelectAsset(agente.id)}
                     >
                       <td className="px-4 py-3 font-medium text-neutral-100">
                         {agente.nombre}
@@ -194,7 +199,10 @@ export function TabOverview({
                       <td className="px-4 py-3 text-right font-mono text-xs text-neutral-300">
                         {formatearPrecio(agente.precio_usd)}
                       </td>
-                      <td className="px-4 py-3">
+                      <td
+                        className="px-4 py-3"
+                        onClick={(event) => event.stopPropagation()}
+                      >
                         <div className="flex flex-wrap items-center gap-2">
                           <span
                             className={
@@ -216,6 +224,11 @@ export function TabOverview({
                           )}
                         </div>
                       </td>
+                      <td className="px-2 py-3 text-neutral-600">
+                        <span className="text-xs" aria-hidden="true">
+                          →
+                        </span>
+                      </td>
                     </tr>
                   ))
                 )}
@@ -228,6 +241,7 @@ export function TabOverview({
       {logsAgent && (
         <SandboxLogsModal agente={logsAgent} onClose={() => setLogsAgent(null)} />
       )}
+
     </div>
   );
 }

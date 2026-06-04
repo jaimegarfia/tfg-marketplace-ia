@@ -30,7 +30,7 @@ export function DeveloperPanelNav({
     <nav
       role="tablist"
       aria-label="Secciones del panel de desarrollador"
-      className="border-b border-neutral-800/60 bg-neutral-950/50"
+      className="border-b border-neutral-800/60 bg-neutral-950/95"
     >
       <div className="mx-auto flex max-w-[1400px] gap-1 overflow-x-auto px-4 py-2 sm:px-6">
         {TABS.map((tab) => {

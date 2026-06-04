@@ -19,6 +19,10 @@ import {
   type PublishAssetActionInput,
 } from "@/app/developer/dashboard/actions";
 import type { PublishAssetResult } from "@/lib/developer-publish";
+import {
+  CertificationOverlay,
+  runCertificationPhases,
+} from "@/components/developer/certification-overlay";
 
 const DEFAULT_DESCRIPTOR = JSON.stringify(
   {
@@ -37,22 +41,6 @@ const DEFAULT_DESCRIPTOR = JSON.stringify(
   null,
   2,
 );
-
-const CERTIFICATION_PHASES = [
-  "Generando identificador único de activo...",
-  "Instanciando jaula de aislamiento efímera en Docker (node:18-alpine)...",
-  "Configurando políticas estrictas de red (egreso deshabilitado)...",
-  "Ejecutando analizador estático contra patrones de vulnerabilidades...",
-  "Generando huella criptográfica SHA-256 e insertando registros atómicos en Neon...",
-] as const;
-
-const PHASE_MS = 200;
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => {
-    setTimeout(resolve, ms);
-  });
-}
 
 const PIPELINE_STEPS = [
   {
@@ -109,54 +97,6 @@ const FIELD_CLASS =
   "w-full rounded-lg border border-neutral-800/80 bg-neutral-950/70 px-3 py-2.5 text-sm text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-neutral-600 focus:ring-1 focus:ring-neutral-600 disabled:opacity-50";
 const LABEL_CLASS =
   "mb-1.5 block font-mono text-[10px] uppercase tracking-widest text-neutral-500";
-
-function CertificationOverlay({ phaseIndex }: { phaseIndex: number }) {
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="certification-overlay-title"
-      aria-live="polite"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/90 px-4 backdrop-blur-sm"
-    >
-      <div className="w-full max-w-lg rounded-xl border border-neutral-800/80 bg-neutral-950 p-6 shadow-2xl shadow-black/40">
-        <div className="flex items-start gap-3">
-          <span
-            className="mt-0.5 h-5 w-5 shrink-0 animate-spin rounded-full border-2 border-neutral-700 border-t-emerald-400"
-            aria-hidden="true"
-          />
-          <div className="min-w-0 flex-1">
-            <p
-              id="certification-overlay-title"
-              className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80"
-            >
-              Motor de certificación Zero Trust
-            </p>
-            <p
-              key={phaseIndex}
-              className="mt-2 animate-fade-up text-sm leading-relaxed text-neutral-200"
-            >
-              {CERTIFICATION_PHASES[phaseIndex]}
-            </p>
-          </div>
-        </div>
-        <div
-          className="mt-5 flex gap-1.5"
-          aria-label={`Fase ${phaseIndex + 1} de ${CERTIFICATION_PHASES.length}`}
-        >
-          {CERTIFICATION_PHASES.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1 flex-1 rounded-full transition-colors duration-200 ${
-                index <= phaseIndex ? "bg-emerald-500/80" : "bg-neutral-800"
-              }`}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function SecurityPipeline() {
   return (
@@ -322,10 +262,7 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
     setPhaseIndex(0);
 
     try {
-      for (let index = 0; index < CERTIFICATION_PHASES.length; index += 1) {
-        setPhaseIndex(index);
-        await sleep(PHASE_MS);
-      }
+      await runCertificationPhases(setPhaseIndex);
 
       const response = await publishAssetAction(payload);
       if (!response.ok) {
