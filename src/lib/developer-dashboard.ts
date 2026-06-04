@@ -91,6 +91,29 @@ function parseCount(value: string | number | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export async function resolveDeveloperById(
+  developerId: string,
+): Promise<DeveloperProfile | null> {
+  const rows = await query<DeveloperRow>(
+    `
+      SELECT id::text AS id, email, nombre
+      FROM usuarios
+      WHERE id = $1::uuid AND rol = 'desarrollador'
+      LIMIT 1
+    `,
+    [developerId],
+  );
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return {
+    id: row.id,
+    email: row.email,
+    nombre: row.nombre,
+  };
+}
+
 export async function resolveDeveloperByEmail(
   email: string,
 ): Promise<DeveloperProfile | null> {

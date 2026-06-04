@@ -1,11 +1,16 @@
 "use server";
 
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import {
+  getSessionFromCookies,
+  clearSessionCookie,
+  setSessionCookie,
+} from "@/lib/auth/session";
+import { authenticateUser } from "@/lib/auth/user-service";
+import {
   getDeveloperDashboardData,
-  resolveDeveloperByEmail,
+  resolveDeveloperById,
   updateFineTuningEstadoForDeveloper,
   type DeveloperDashboardData,
 } from "@/lib/developer-dashboard";
@@ -31,8 +36,6 @@ import type {
   TipoActivo,
 } from "@/types/database";
 
-const DEVELOPER_COOKIE = "certia_developer_email";
-
 const VALID_ESTADOS: ReadonlySet<EstadoProcesoFineTuning> = new Set([
   "solicitado",
   "en_desarrollo",
@@ -40,48 +43,20 @@ const VALID_ESTADOS: ReadonlySet<EstadoProcesoFineTuning> = new Set([
   "disputa",
 ]);
 
-export async function establishDeveloperSession(
-  email: string,
-): Promise<{ ok: false; error: string } | undefined> {
-  const normalizedEmail = email.trim();
-  if (!normalizedEmail) {
-    return { ok: false, error: "Introduce un email de desarrollador." };
-  }
-
-  const developer = await resolveDeveloperByEmail(normalizedEmail);
-  if (!developer) {
-    return {
-      ok: false,
-      error:
-        "Esta cuenta no tiene perfil de desarrollador en Neon. Ejecuta el seed del catálogo y usa un email como labs@certia.local.",
-    };
-  }
-
-  const cookieStore = await cookies();
-  cookieStore.set(DEVELOPER_COOKIE, developer.email, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 8,
-  });
-
-  redirect("/developer/dashboard");
-}
-
 export async function clearDeveloperSession(): Promise<void> {
-  const cookieStore = await cookies();
-  cookieStore.delete(DEVELOPER_COOKIE);
+  await clearSessionCookie();
   revalidatePath("/developer/dashboard");
 }
 
 export async function getDeveloperDashboardFromSession(): Promise<DeveloperDashboardData | null> {
-  const cookieStore = await cookies();
-  const email = cookieStore.get(DEVELOPER_COOKIE)?.value;
-  if (!email) return null;
+  const session = await getSessionFromCookies();
+  if (!session || session.rol !== "desarrollador") {
+    return null;
+  }
 
-  const developer = await resolveDeveloperByEmail(email);
+  const developer = await resolveDeveloperById(session.sub);
   if (!developer) {
-    cookieStore.delete(DEVELOPER_COOKIE);
+    await clearSessionCookie();
     return null;
   }
 
@@ -115,15 +90,9 @@ export async function publishAssetAction(
 ): Promise<
   { ok: true; result: PublishAssetResult } | { ok: false; error: string }
 > {
-  const cookieStore = await cookies();
-  const email = cookieStore.get(DEVELOPER_COOKIE)?.value;
-  if (!email) {
-    return { ok: false, error: "Sesión de desarrollador no encontrada." };
-  }
-
-  const developer = await resolveDeveloperByEmail(email);
-  if (!developer) {
-    return { ok: false, error: "Desarrollador no autorizado." };
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) {
+    return session;
   }
 
   const validation = validatePublishInput({
@@ -142,7 +111,7 @@ export async function publishAssetAction(
 
   try {
     const result = await publishDeveloperAsset({
-      developerId: developer.id,
+      developerId: session.developer.id,
       nombre: input.nombre,
       version: input.version,
       precioUsd: input.precioUsd,
@@ -162,20 +131,51 @@ export async function publishAssetAction(
 }
 
 async function resolveSessionDeveloper(): Promise<
-  { ok: true; developer: { id: string; email: string } } | { ok: false; error: string }
+  | { ok: true; developer: { id: string; email: string; nombre: string } }
+  | { ok: false; error: string }
 > {
-  const cookieStore = await cookies();
-  const email = cookieStore.get(DEVELOPER_COOKIE)?.value;
-  if (!email) {
-    return { ok: false, error: "Sesión de desarrollador no encontrada." };
+  const session = await getSessionFromCookies();
+  if (!session) {
+    return { ok: false, error: "Sesión no encontrada. Inicia sesión." };
   }
 
-  const developer = await resolveDeveloperByEmail(email);
+  if (session.rol !== "desarrollador") {
+    return { ok: false, error: "Esta cuenta no tiene rol de desarrollador." };
+  }
+
+  const developer = await resolveDeveloperById(session.sub);
   if (!developer) {
     return { ok: false, error: "Desarrollador no autorizado." };
   }
 
   return { ok: true, developer };
+}
+
+export async function developerGateLoginAction(input: {
+  email: string;
+  password: string;
+}): Promise<{ ok: false; error: string } | undefined> {
+  const result = await authenticateUser(input);
+  if (!result.ok) {
+    return { ok: false, error: result.error };
+  }
+
+  if (result.user.rol !== "desarrollador") {
+    return {
+      ok: false,
+      error: "Esta cuenta no es de desarrollador. Regístrate como vendedor.",
+    };
+  }
+
+  await setSessionCookie({
+    sub: result.user.id,
+    email: result.user.email,
+    nombre: result.user.nombre,
+    rol: result.user.rol,
+  });
+
+  revalidatePath("/developer/dashboard");
+  redirect("/developer/dashboard");
 }
 
 export async function getAssetDetailAction(
@@ -272,22 +272,16 @@ export async function updateFineTuningEstadoAction(
     return { ok: false, error: "Estado de proceso no válido." };
   }
 
-  const cookieStore = await cookies();
-  const email = cookieStore.get(DEVELOPER_COOKIE)?.value;
-  if (!email) {
-    return { ok: false, error: "Sesión de desarrollador no encontrada." };
-  }
-
-  const developer = await resolveDeveloperByEmail(email);
-  if (!developer) {
-    return { ok: false, error: "Desarrollador no autorizado." };
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) {
+    return session;
   }
 
   try {
     const updated = await updateFineTuningEstadoForDeveloper(
       servicioId,
       estado,
-      developer.id,
+      session.developer.id,
     );
 
     if (!updated) {

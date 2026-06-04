@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTransition } from "react";
 import { ArrowLeft, LogOut, Shield, Store } from "lucide-react";
-import { clearDeveloperSession } from "@/app/developer/dashboard/actions";
+import { logoutAction } from "@/app/auth/actions";
 
 interface DeveloperHeaderProps {
   developerName: string;
@@ -24,7 +24,7 @@ export function DeveloperHeader({
 
   const handleSignOut = () => {
     startSignOut(async () => {
-      await clearDeveloperSession();
+      await logoutAction();
       window.location.href = "/";
     });
   };

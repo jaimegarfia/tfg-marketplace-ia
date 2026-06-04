@@ -20,7 +20,7 @@ const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
   throw new Error(
     "[db] Falta la variable de entorno DATABASE_URL. " +
-      "Copia .env.example a .env.local y define la cadena de conexión de Neon.",
+      "Crea .env.local según docs/env-setup.md y define DATABASE_URL (Neon).",
   );
 }
 

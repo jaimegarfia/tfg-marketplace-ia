@@ -1,11 +1,11 @@
 # ============================================================================
-# SEGURIDAD: nunca exponer credenciales de base de datos / secretos.
-# Se ignoran TODOS los ficheros de entorno locales, pero se permite la
-# plantilla pública `.env.example` para documentar las variables requeridas.
+# SEGURIDAD: nunca subir ficheros de entorno (ni plantillas con secretos).
+# Variables documentadas en docs/env-setup.md
 # ============================================================================
 .env
 .env.*
-!.env.example
+.env.example
+.env.local
 
 # Logs
 logs

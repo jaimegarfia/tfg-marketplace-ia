@@ -20,7 +20,7 @@ import { AgentGridSkeleton } from "@/components/marketplace/agent-grid-skeleton"
 import { FilterBar } from "@/components/marketplace/filter-bar";
 import { MarketplaceSection } from "@/components/marketplace/marketplace-section";
 import { AgentDrawer } from "@/components/agent-drawer";
-import { useMockAuth } from "@/context/mock-auth-context";
+import { useAuth } from "@/context/auth-context";
 
 interface MarketplaceHomeProps {
   agentes: AgenteConAuditoria[];
@@ -29,7 +29,7 @@ interface MarketplaceHomeProps {
 export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { user, openAuthModal } = useMockAuth();
+  const { user, openAuthModal } = useAuth();
 
   const filters = useMemo(
     () => parseFiltersFromSearchParams(searchParams),

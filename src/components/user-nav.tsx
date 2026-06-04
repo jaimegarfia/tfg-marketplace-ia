@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { LayoutDashboard, Receipt, User } from "lucide-react";
-import { useMockAuth } from "@/context/mock-auth-context";
+import { useAuth } from "@/context/auth-context";
 
 export function UserNav() {
-  const { user, openAuthModal } = useMockAuth();
+  const { user, openAuthModal, signOut } = useAuth();
 
   if (!user) {
     return (
@@ -46,7 +46,8 @@ export function UserNav() {
 
       <button
         type="button"
-        aria-label="Cuenta de usuario"
+        onClick={() => void signOut()}
+        aria-label="Cerrar sesión"
         className="group flex items-center gap-2.5 transition-colors duration-200"
       >
         <span

@@ -21,7 +21,7 @@ import type {
 } from "@/types/database";
 import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
 import { VerifiedPermissionsScope } from "@/components/verified-permissions-scope";
-import { useMockAuth } from "@/context/mock-auth-context";
+import { useAuth } from "@/context/auth-context";
 import type { ApprovedPermissions } from "@/lib/audit-engine";
 import { isApprovedPermissions } from "@/lib/audit-catalog";
 import { CodeBlock } from "@/components/drawer/code-block";
@@ -441,7 +441,7 @@ interface AgentDrawerProps {
 }
 
 export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
-  const { user, openAuthModal } = useMockAuth();
+  const { user, openAuthModal } = useAuth();
   const [activeTab, setActiveTab] = useState<DrawerTab>("inspeccion");
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);

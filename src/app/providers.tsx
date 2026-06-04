@@ -1,8 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { MockAuthProvider } from "@/context/mock-auth-context";
-import { MockAuthModal } from "@/components/mock-auth-modal";
+import { AuthProvider } from "@/context/auth-context";
+import { AuthModal } from "@/components/auth-modal";
 
 interface ProvidersProps {
   children: ReactNode;
@@ -10,9 +10,9 @@ interface ProvidersProps {
 
 export function Providers({ children }: ProvidersProps) {
   return (
-    <MockAuthProvider>
+    <AuthProvider>
       {children}
-      <MockAuthModal />
-    </MockAuthProvider>
+      <AuthModal />
+    </AuthProvider>
   );
 }
