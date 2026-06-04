@@ -41,7 +41,7 @@ export interface DeveloperAssetDetail {
   firma_digital: string | null;
   created_at: string;
   ventas_count: number;
-  ingresos_usd: number;
+  ingresos_eur: number;
   logs_sandbox: string | null;
   auditHistory: AuditHistoryRow[];
   valoraciones: ValoracionRow[];
@@ -316,7 +316,7 @@ export async function getDeveloperAssetDetail(
     firma_digital: row.firma_digital,
     created_at: row.created_at,
     ventas_count: ventasCount,
-    ingresos_usd: precioUsd * ventasCount,
+    ingresos_eur: precioUsd * ventasCount,
     logs_sandbox: row.logs_sandbox,
     auditHistory: auditRows.map((audit) => ({
       id: audit.id,

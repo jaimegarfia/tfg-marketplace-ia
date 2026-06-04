@@ -33,13 +33,16 @@ export function etiquetaCategoria(categoria: CategoriaAgente): string {
   return ETIQUETAS_CATEGORIA[categoria];
 }
 
-export function formatearPrecio(precioUsd: number): string {
-  if (precioUsd === 0) return "Gratis";
+/** Moneda de catálogo y panel desarrollador (valores numéricos en BD, columna `precio_usd`). */
+export const MONEDA_CATALOGO = "EUR" as const;
+
+export function formatearPrecio(precio: number): string {
+  if (precio === 0) return "Gratis";
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
-    currency: "USD",
+    currency: MONEDA_CATALOGO,
     maximumFractionDigits: 0,
-  }).format(precioUsd);
+  }).format(precio);
 }
 
 export function formatearRating(rating: number): string {

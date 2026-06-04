@@ -64,7 +64,7 @@ export default function TerminosServicioPage() {
           5. Pagos y facturación
         </h2>
         <p>
-          Los precios se muestran en USD salvo indicación contraria. Las
+          Los precios se muestran en euros (EUR). Las
           transacciones pueden procesarse mediante proveedores de pago
           externos; Certia no almacena datos completos de tarjetas en su base de
           datos principal.

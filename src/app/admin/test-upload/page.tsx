@@ -170,7 +170,7 @@ export default function AdminTestUploadPage() {
                 htmlFor="precio_usd"
                 className="font-mono text-xs uppercase tracking-widest text-neutral-500"
               >
-                Precio (USD)
+                Precio (EUR)
               </label>
               <input
                 id="precio_usd"

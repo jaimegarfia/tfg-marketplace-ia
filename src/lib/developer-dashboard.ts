@@ -12,7 +12,7 @@ export interface DeveloperProfile {
 }
 
 export interface DeveloperMetrics {
-  ingresosTotalesUsd: number;
+  ingresosTotalesEur: number;
   unidadesDistribuidas: number;
   tasaAceptacionSandbox: number;
   totalAgentes: number;
@@ -181,7 +181,7 @@ async function getDeveloperMetrics(
       : 0;
 
   return {
-    ingresosTotalesUsd: parseNumber(row?.ingresos_totales),
+    ingresosTotalesEur: parseNumber(row?.ingresos_totales),
     unidadesDistribuidas: parseCount(row?.unidades_distribuidas),
     tasaAceptacionSandbox,
     totalAgentes,

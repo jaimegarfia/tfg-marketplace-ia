@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   BadgeCheck,
-  DollarSign,
+  Euro,
   Package,
   PlusCircle,
 } from "lucide-react";
@@ -22,14 +22,6 @@ interface TabOverviewProps {
   agentes: DeveloperAgenteRow[];
   onPublishClick: () => void;
   onSelectAsset: (agenteId: string) => void;
-}
-
-function formatUsd(value: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(value);
 }
 
 interface MetricCardProps {
@@ -103,10 +95,10 @@ export function TabOverview({
 
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard
-          label="Ingresos totales (USD)"
-          value={formatUsd(metrics.ingresosTotalesUsd)}
+          label="Ingresos totales (EUR)"
+          value={formatearPrecio(metrics.ingresosTotalesEur)}
           hint="Suma de transacciones completadas sobre tus agentes."
-          icon={DollarSign}
+          icon={Euro}
           accent="emerald"
         />
         <MetricCard

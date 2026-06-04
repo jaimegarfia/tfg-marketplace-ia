@@ -313,7 +313,7 @@ export function AssetManageDrawer({
                 Ingresos
               </p>
               <p className="mt-1 text-base font-semibold tabular-nums text-emerald-300/90">
-                {formatearPrecio(detail.ingresos_usd)}
+                {formatearPrecio(detail.ingresos_eur)}
               </p>
             </div>
             <div className="px-4 py-3">
@@ -437,7 +437,7 @@ export function AssetManageDrawer({
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div>
                       <label htmlFor="asset-precio" className={LABEL_CLASS}>
-                        Precio (USD)
+                        Precio (EUR)
                       </label>
                       <input
                         id="asset-precio"

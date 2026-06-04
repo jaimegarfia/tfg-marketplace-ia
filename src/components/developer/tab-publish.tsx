@@ -348,7 +348,7 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
 
           <div className="space-y-1.5">
             <label htmlFor="pub-precio" className={LABEL_CLASS}>
-              Precio (USD)
+              Precio (EUR)
             </label>
             <input
               id="pub-precio"
