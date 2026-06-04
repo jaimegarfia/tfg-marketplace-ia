@@ -13,6 +13,7 @@ const ETIQUETAS_CATEGORIA: Record<CategoriaAgente, string> = {
   orquestacion: "Orquestación",
   datos: "Datos",
   seguridad: "Seguridad",
+  otros: "Otros",
 };
 
 export const CATEGORIAS_AGENTE: readonly CategoriaAgente[] = [
@@ -23,6 +24,7 @@ export const CATEGORIAS_AGENTE: readonly CategoriaAgente[] = [
   "orquestacion",
   "datos",
   "seguridad",
+  "otros",
 ] as const;
 
 export function etiquetaTipoActivo(tipo: TipoActivo): string {

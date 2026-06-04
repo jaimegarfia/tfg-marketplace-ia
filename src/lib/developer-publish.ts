@@ -44,6 +44,7 @@ const VALID_CATEGORIAS: ReadonlySet<CategoriaAgente> = new Set([
   "orquestacion",
   "datos",
   "seguridad",
+  "otros",
 ]);
 
 function slugify(nombre: string): string {

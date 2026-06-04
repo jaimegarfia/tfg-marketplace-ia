@@ -212,6 +212,7 @@ const CATEGORY_DEFAULTS: Record<CategoriaAgente, ApprovedPermissions> = {
       execution_engines: ["scanner"],
     },
   }),
+  otros: LOCKED,
 };
 
 export function resolveSeedPermissions(input: {

@@ -40,6 +40,7 @@ const VALID_CATEGORIAS = new Set<string>([
   "orquestacion",
   "datos",
   "seguridad",
+  "otros",
 ]);
 
 const VALID_TIPOS = new Set<string>([

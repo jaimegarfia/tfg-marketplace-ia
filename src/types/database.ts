@@ -31,7 +31,8 @@ export type CategoriaAgente =
   | "compliance"
   | "orquestacion"
   | "datos"
-  | "seguridad";
+  | "seguridad"
+  | "otros";
 
 export type EstadoAuditoria =
   | "borrador"

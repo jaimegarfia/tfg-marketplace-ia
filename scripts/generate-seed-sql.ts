@@ -78,7 +78,7 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'categoria_agente') THEN
     CREATE TYPE categoria_agente AS ENUM (
       'rag', 'automatizacion', 'finanzas', 'compliance',
-      'orquestacion', 'datos', 'seguridad'
+      'orquestacion', 'datos', 'seguridad', 'otros'
     );
   END IF;
 END $$;

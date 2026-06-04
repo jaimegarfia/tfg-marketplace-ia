@@ -139,6 +139,21 @@ const RUNTIME_BY_CATEGORIA: Record<CategoriaAgente, RuntimeProfile> = {
       "Valida la firma digital del registro antes de elevar privilegios.",
     ],
   },
+  otros: {
+    port: 8080,
+    dockerFlags: "",
+    envLines: [
+      "CERTIA_AGENT_ID=",
+      "CERTIA_AUTH_TOKEN=",
+      "APP_CONFIG_PATH=/etc/certia/agent.yaml",
+    ],
+    description:
+      "Runtime genérico para activos que no encajan en una categoría vertical. Configura variables según la documentación del proveedor.",
+    notes: [
+      "Revisa el descriptor técnico antes de exponer puertos en producción.",
+      "Usa red aislada (--network none) salvo requisito explícito del activo.",
+    ],
+  },
 };
 
 interface BlueprintProfile {
@@ -278,6 +293,24 @@ const BLUEPRINT_BY_CATEGORIA: Record<CategoriaAgente, BlueprintProfile> = {
       "Restringe THREAT_INTEL_API_KEY a rotación trimestral.",
     ],
     notes: ["Ejecuta en modo dry-run las primeras 72 h en entorno de staging."],
+  },
+  otros: {
+    platformHint: "n8n, Make o despliegue personalizado",
+    envLines: [
+      "CERTIA_AUTH_TOKEN=",
+      "CERTIA_AGENT_ID=",
+      "CERTIA_PRIVATE_DATA_ENDPOINT=",
+    ],
+    description:
+      "Blueprint genérico para arquitecturas de referencia o flujos híbridos. Adapta nodos y credenciales a tu entorno.",
+    steps: [
+      "Importa el JSON en tu iPaaS o ejecuta el contenedor según la guía del activo.",
+      "Configura CERTIA_PRIVATE_DATA_ENDPOINT si conectas datos internos.",
+      "Valida permisos en la pestaña Inspección Técnica antes de producción.",
+    ],
+    notes: [
+      "Documenta en la descripción comercial el stack objetivo (n8n, Zapier, custom).",
+    ],
   },
 };
 

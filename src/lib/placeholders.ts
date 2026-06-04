@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bot,
+  Box,
   Database,
   FileSearch,
   Landmark,
@@ -54,6 +55,11 @@ export const PLACEHOLDER_POR_CATEGORIA: Record<
     gradient: "from-red-900/80 via-orange-900/50 to-neutral-900",
     icon: Bot,
     label: "Seguridad",
+  },
+  otros: {
+    gradient: "from-neutral-800/90 via-zinc-800/70 to-neutral-900",
+    icon: Box,
+    label: "Otros",
   },
 };
 
