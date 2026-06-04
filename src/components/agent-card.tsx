@@ -37,7 +37,7 @@ export function AgentCard({ agente }: AgentCardProps) {
 
       <footer className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4">
         <span className="text-sm font-semibold">
-          {formatearPrecio(agente.precio_usd)}
+          {formatearPrecio(agente.precio_eur)}
         </span>
         {verificado ? (
           <span className="inline-flex items-center gap-1.5 text-xs font-medium text-mint-700 dark:text-mint-400">

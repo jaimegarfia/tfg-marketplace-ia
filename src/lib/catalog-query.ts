@@ -121,13 +121,13 @@ export function filterAgentes(
     if (filters.tipo !== "todos" && agente.tipo_activo !== filters.tipo) {
       return false;
     }
-    if (filters.soloGratis && agente.precio_usd !== 0) {
+    if (filters.soloGratis && agente.precio_eur !== 0) {
       return false;
     }
-    if (filters.precioMin !== null && agente.precio_usd < filters.precioMin) {
+    if (filters.precioMin !== null && agente.precio_eur < filters.precioMin) {
       return false;
     }
-    if (filters.precioMax !== null && agente.precio_usd > filters.precioMax) {
+    if (filters.precioMax !== null && agente.precio_eur > filters.precioMax) {
       return false;
     }
     return true;
@@ -151,9 +151,9 @@ export function sortAgentes(
   const copy = [...agentes];
   switch (sort) {
     case "precio_asc":
-      return copy.sort((a, b) => a.precio_usd - b.precio_usd);
+      return copy.sort((a, b) => a.precio_eur - b.precio_eur);
     case "precio_desc":
-      return copy.sort((a, b) => b.precio_usd - a.precio_usd);
+      return copy.sort((a, b) => b.precio_eur - a.precio_eur);
     case "recientes":
       return copy.sort(
         (a, b) =>

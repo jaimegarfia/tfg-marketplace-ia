@@ -108,7 +108,7 @@ export function AssetManageDrawer({
   const [mounted, setMounted] = useState(false);
 
   const [descripcion, setDescripcion] = useState("");
-  const [precioUsd, setPrecioUsd] = useState("0");
+  const [precioEur, setPrecioEur] = useState("0");
   const [categoria, setCategoria] = useState<CategoriaAgente>("automatizacion");
   const [imagenUrl, setImagenUrl] = useState("");
 
@@ -128,7 +128,7 @@ export function AssetManageDrawer({
     const data = result.detail;
     setDetail(data);
     setDescripcion(data.descripcion);
-    setPrecioUsd(String(data.precio_usd));
+    setPrecioEur(String(data.precio_eur));
     setCategoria(data.categoria);
     setImagenUrl(data.imagen_url ?? "");
     setNewVersion(bumpVersion(data.version));
@@ -156,7 +156,7 @@ export function AssetManageDrawer({
 
     const result = await updateAssetAction(agenteId, {
       descripcion,
-      precioUsd: Number(precioUsd),
+      precioEur: Number(precioEur),
       categoria,
       imagenUrl: imagenUrl.trim() || null,
     });
@@ -289,7 +289,7 @@ export function AssetManageDrawer({
                   <div className="mt-2.5 flex items-center gap-2">
                     <AuditBadge estado={detail.estado_auditoria} />
                     <span className="text-sm font-semibold text-neutral-100">
-                      {formatearPrecio(detail.precio_usd)}
+                      {formatearPrecio(detail.precio_eur)}
                     </span>
                   </div>
                 </div>
@@ -444,9 +444,9 @@ export function AssetManageDrawer({
                         type="number"
                         min={0}
                         step="1"
-                        value={precioUsd}
+                        value={precioEur}
                         disabled={isSaving}
-                        onChange={(e) => setPrecioUsd(e.target.value)}
+                        onChange={(e) => setPrecioEur(e.target.value)}
                         className={FIELD_CLASS}
                       />
                     </div>

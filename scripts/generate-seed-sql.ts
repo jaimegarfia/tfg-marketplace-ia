@@ -29,7 +29,7 @@ const agentValues = SEED_AGENTS.map((a) => {
     ${sqlString(a.nombre)},
     ${sqlString(a.descripcion)},
     ${sqlString(a.version)},
-    ${a.precio_usd},
+    ${a.precio_eur},
     ${sqlString(a.tipo_activo)},
     ${sqlString(a.categoria)}::categoria_agente,
     NULL,
@@ -123,7 +123,7 @@ INSERT INTO agentes (
   nombre,
   descripcion,
   version,
-  precio_usd,
+  precio_eur,
   tipo_activo,
   categoria,
   imagen_url,
@@ -145,7 +145,7 @@ COMMIT;
 SELECT
   (SELECT COUNT(*) FROM agentes) AS agentes,
   (SELECT COUNT(*) FROM agentes WHERE estado_auditoria = 'certificado') AS certificados,
-  (SELECT COUNT(*) FROM agentes WHERE precio_usd = 0) AS gratis,
+  (SELECT COUNT(*) FROM agentes WHERE precio_eur = 0) AS gratis,
   (SELECT COUNT(*) FROM auditorias) AS auditorias;
 `;
 

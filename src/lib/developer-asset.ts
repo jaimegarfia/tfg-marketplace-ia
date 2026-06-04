@@ -30,7 +30,7 @@ export interface DeveloperAssetDetail {
   nombre: string;
   descripcion: string;
   version: string;
-  precio_usd: number;
+  precio_eur: number;
   tipo_activo: TipoActivo;
   categoria: CategoriaAgente;
   imagen_url: string | null;
@@ -49,7 +49,7 @@ export interface DeveloperAssetDetail {
 
 export interface UpdateAssetInput {
   descripcion: string;
-  precioUsd: number;
+  precioEur: number;
   categoria: CategoriaAgente;
   imagenUrl: string | null;
 }
@@ -210,7 +210,7 @@ export async function getDeveloperAssetDetail(
     nombre: string;
     descripcion: string;
     version: string;
-    precio_usd: string | number;
+    precio_eur: string | number;
     tipo_activo: TipoActivo;
     categoria: CategoriaAgente;
     imagen_url: string | null;
@@ -229,7 +229,7 @@ export async function getDeveloperAssetDetail(
         a.nombre,
         a.descripcion,
         a.version,
-        a.precio_usd,
+        a.precio_eur,
         a.tipo_activo,
         a.categoria,
         a.imagen_url,
@@ -261,7 +261,7 @@ export async function getDeveloperAssetDetail(
   const row = rows[0];
   if (!row) return null;
 
-  const precioUsd = parseNumber(row.precio_usd);
+  const precioEur = parseNumber(row.precio_eur);
   const ventasCount = parseCount(row.ventas_count);
 
   const auditRows = await query<{
@@ -305,7 +305,7 @@ export async function getDeveloperAssetDetail(
     nombre: row.nombre,
     descripcion: row.descripcion,
     version: row.version,
-    precio_usd: precioUsd,
+    precio_eur: precioEur,
     tipo_activo: row.tipo_activo,
     categoria: row.categoria,
     imagen_url: row.imagen_url,
@@ -316,7 +316,7 @@ export async function getDeveloperAssetDetail(
     firma_digital: row.firma_digital,
     created_at: row.created_at,
     ventas_count: ventasCount,
-    ingresos_eur: precioUsd * ventasCount,
+    ingresos_eur: precioEur * ventasCount,
     logs_sandbox: row.logs_sandbox,
     auditHistory: auditRows.map((audit) => ({
       id: audit.id,
@@ -335,7 +335,7 @@ export function validateUpdateAssetInput(
   if (!input.descripcion.trim()) {
     return { ok: false, error: "La descripción es obligatoria." };
   }
-  if (!Number.isFinite(input.precioUsd) || input.precioUsd < 0) {
+  if (!Number.isFinite(input.precioEur) || input.precioEur < 0) {
     return { ok: false, error: "El precio debe ser mayor o igual a 0." };
   }
   if (input.imagenUrl && !/^https?:\/\/.+/i.test(input.imagenUrl.trim())) {
@@ -354,7 +354,7 @@ export async function updateDeveloperAsset(
       UPDATE agentes
       SET
         descripcion = $3,
-        precio_usd = $4,
+        precio_eur = $4,
         categoria = $5::categoria_agente,
         imagen_url = $6
       WHERE id = $1::uuid AND desarrollador_id = $2::uuid
@@ -364,7 +364,7 @@ export async function updateDeveloperAsset(
       agenteId,
       developerId,
       input.descripcion.trim(),
-      input.precioUsd,
+      input.precioEur,
       input.categoria,
       input.imagenUrl?.trim() || null,
     ],

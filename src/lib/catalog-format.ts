@@ -33,7 +33,7 @@ export function etiquetaCategoria(categoria: CategoriaAgente): string {
   return ETIQUETAS_CATEGORIA[categoria];
 }
 
-/** Moneda de catálogo y panel desarrollador (valores numéricos en BD, columna `precio_usd`). */
+/** Moneda de catálogo y panel desarrollador (valores numéricos en BD, columna `precio_eur`). */
 export const MONEDA_CATALOGO = "EUR" as const;
 
 export function formatearPrecio(precio: number): string {

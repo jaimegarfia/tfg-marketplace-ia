@@ -90,7 +90,7 @@ export interface Agente {
   nombre: string;
   descripcion: string;
   version: string;
-  precio_usd: number;
+  precio_eur: number;
   tipo_activo: TipoActivo;
   categoria: CategoriaAgente;
   imagen_url: string | null;

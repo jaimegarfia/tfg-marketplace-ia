@@ -189,7 +189,7 @@ export function TabOverview({
                         {etiquetaTipoActivo(agente.tipo_activo)}
                       </td>
                       <td className="px-4 py-3 text-right font-mono text-xs text-neutral-300">
-                        {formatearPrecio(agente.precio_usd)}
+                        {formatearPrecio(agente.precio_eur)}
                       </td>
                       <td
                         className="px-4 py-3"

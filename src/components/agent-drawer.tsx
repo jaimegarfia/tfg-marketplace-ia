@@ -581,7 +581,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
     : fallbackPermissions();
   const integrityHash =
     agente.auditoria?.hash_integridad ?? agente.hash_integridad;
-  const isFree = agente.precio_usd === 0;
+  const isFree = agente.precio_eur === 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
@@ -638,7 +638,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
                 aria-hidden="true"
               />
               <span className="text-lg font-medium tracking-tight text-neutral-100">
-                {formatearPrecio(agente.precio_usd)}
+                {formatearPrecio(agente.precio_eur)}
               </span>
             </div>
 
@@ -734,7 +734,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
             ) : (
               <>
                 <ArrowUpRight size={15} strokeWidth={1.5} aria-hidden="true" />
-                Adquirir activo — {formatearPrecio(agente.precio_usd)}
+                Adquirir activo — {formatearPrecio(agente.precio_eur)}
               </>
             )}
           </button>

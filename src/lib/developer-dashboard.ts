@@ -24,7 +24,7 @@ export interface DeveloperAgenteRow {
   nombre: string;
   version: string;
   tipo_activo: TipoActivo;
-  precio_usd: number;
+  precio_eur: number;
   estado_auditoria: EstadoAuditoria;
   logs_sandbox: string | null;
 }
@@ -63,7 +63,7 @@ interface AgenteDashboardRow {
   nombre: string;
   version: string;
   tipo_activo: TipoActivo;
-  precio_usd: string | number;
+  precio_eur: string | number;
   estado_auditoria: EstadoAuditoria;
   logs_sandbox: string | null;
 }
@@ -144,7 +144,7 @@ async function getDeveloperMetrics(
     `
       SELECT
         COALESCE((
-          SELECT SUM(a.precio_usd)
+          SELECT SUM(a.precio_eur)
           FROM transacciones t
           INNER JOIN agentes a ON a.id = t.agente_id
           WHERE a.desarrollador_id = $1::uuid
@@ -199,7 +199,7 @@ async function getDeveloperAgentes(
         a.nombre,
         a.version,
         a.tipo_activo,
-        a.precio_usd,
+        a.precio_eur,
         a.estado_auditoria,
         au.logs_sandbox
       FROM agentes a
@@ -221,7 +221,7 @@ async function getDeveloperAgentes(
     nombre: row.nombre,
     version: row.version,
     tipo_activo: row.tipo_activo,
-    precio_usd: parseNumber(row.precio_usd),
+    precio_eur: parseNumber(row.precio_eur),
     estado_auditoria: row.estado_auditoria,
     logs_sandbox: row.logs_sandbox,
   }));

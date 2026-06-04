@@ -103,7 +103,7 @@ function AgentRow({ agente, index, onSelect }: AgentRowProps) {
             Precio
           </p>
           <p className="text-xl font-medium tracking-tight text-neutral-100">
-            {formatearPrecio(agente.precio_usd)}
+            {formatearPrecio(agente.precio_eur)}
           </p>
         </div>
 

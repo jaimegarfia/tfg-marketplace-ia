@@ -101,7 +101,7 @@ export function AgentCard({ agente, onSelect, onAcquire }: AgentCardProps) {
 
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-lg font-semibold tracking-tight text-neutral-100">
-              {formatearPrecio(agente.precio_usd)}
+              {formatearPrecio(agente.precio_eur)}
             </span>
             <span className="text-[10px] text-neutral-600">v{agente.version}</span>
           </div>

@@ -76,7 +76,7 @@ const TIPO_OPTIONS: ReadonlyArray<{ value: TipoActivo; label: string }> = [
 interface FormState {
   nombre: string;
   version: string;
-  precioUsd: string;
+  precioEur: string;
   tipoActivo: TipoActivo;
   categoria: CategoriaAgente;
   descripcion: string;
@@ -86,7 +86,7 @@ interface FormState {
 const INITIAL_FORM: FormState = {
   nombre: "",
   version: "1.0.0",
-  precioUsd: "0",
+  precioEur: "0",
   tipoActivo: "runtime_artifact",
   categoria: "automatizacion",
   descripcion: "",
@@ -251,7 +251,7 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
     const payload: PublishAssetActionInput = {
       nombre: form.nombre,
       version: form.version,
-      precioUsd: Number(form.precioUsd),
+      precioEur: Number(form.precioEur),
       tipoActivo: form.tipoActivo,
       categoria: form.categoria,
       descripcion: form.descripcion,
@@ -355,9 +355,9 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
               type="number"
               min={0}
               step="1"
-              value={form.precioUsd}
+              value={form.precioEur}
               disabled={isAuditing}
-              onChange={(event) => setField("precioUsd", event.target.value)}
+              onChange={(event) => setField("precioEur", event.target.value)}
               className={FIELD_CLASS}
             />
           </div>

@@ -92,7 +92,7 @@ async function insertAgentLegacy(
         nombre,
         descripcion,
         version,
-        precio_usd,
+        precio_eur,
         tipo_activo,
         estado_auditoria,
         hash_integridad,
@@ -106,7 +106,7 @@ async function insertAgentLegacy(
       agent.nombre,
       agent.descripcion,
       agent.version,
-      agent.precio_usd,
+      agent.precio_eur,
       agent.tipo_activo,
       agent.estado_auditoria,
       agent.hash_integridad,
@@ -132,7 +132,7 @@ async function insertAgent(
           nombre,
           descripcion,
           version,
-          precio_usd,
+          precio_eur,
           tipo_activo,
           categoria,
           imagen_url,
@@ -150,7 +150,7 @@ async function insertAgent(
         agent.nombre,
         agent.descripcion,
         agent.version,
-        agent.precio_usd,
+        agent.precio_eur,
         agent.tipo_activo,
         agent.categoria,
         agent.imagen_url,
@@ -253,7 +253,7 @@ export async function seedCatalogData(): Promise<SeedSummary> {
       inserted += 1;
 
       if (agent.estado_auditoria === "certificado") certificados += 1;
-      if (agent.precio_usd === 0) gratis += 1;
+      if (agent.precio_eur === 0) gratis += 1;
 
       const auditCreated = await insertAuditForCertifiedAgent(
         client,

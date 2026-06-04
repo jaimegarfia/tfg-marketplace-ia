@@ -15,7 +15,7 @@ export interface SeedAgentInput {
   nombre: string;
   descripcion: string;
   version: string;
-  precio_usd: number;
+  precio_eur: number;
   tipo_activo: TipoActivo;
   categoria: CategoriaAgente;
   imagen_url: string | null;
@@ -80,7 +80,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Recuperación aumentada con aislamiento de contexto y trazabilidad de fuentes para entornos regulados.",
     version: "2.4.1",
-    precio_usd: 149,
+    precio_eur: 149,
     tipo_activo: "runtime_artifact",
     categoria: "rag",
     rating_promedio: 4.8,
@@ -93,7 +93,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "RAG empresarial con vault cifrado, control de acceso por documento y auditoría de consultas.",
     version: "3.0.1",
-    precio_usd: 179,
+    precio_eur: 179,
     tipo_activo: "runtime_artifact",
     categoria: "rag",
     rating_promedio: 4.4,
@@ -106,7 +106,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Agente RAG especializado en contratos legales con citación obligatoria de cláusulas y páginas.",
     version: "1.6.0",
-    precio_usd: 219,
+    precio_eur: 219,
     tipo_activo: "runtime_artifact",
     categoria: "rag",
     rating_promedio: 4.6,
@@ -119,7 +119,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Consulta sobre historiales clínicos anonimizados con políticas HIPAA y registro de acceso.",
     version: "2.1.3",
-    precio_usd: 399,
+    precio_eur: 399,
     tipo_activo: "runtime_artifact",
     categoria: "rag",
     rating_promedio: 4.9,
@@ -132,7 +132,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Plantilla RAG open-source para equipos que empiezan con bases vectoriales y evaluación básica.",
     version: "1.0.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "rag",
     rating_promedio: 4.1,
@@ -145,7 +145,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Sincroniza wikis internas con embeddings incrementales y detección de documentos obsoletos.",
     version: "1.3.2",
-    precio_usd: 89,
+    precio_eur: 89,
     tipo_activo: "runtime_artifact",
     categoria: "rag",
     rating_promedio: 4.2,
@@ -160,7 +160,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Procesamiento de facturas con OCR, validación fiscal y conciliación automática con ERP.",
     version: "1.5.2",
-    precio_usd: 59,
+    precio_eur: 59,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 4.1,
@@ -173,7 +173,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Clasifica y resuelve tickets de soporte N1 con escalado inteligente y plantillas auditables.",
     version: "2.0.0",
-    precio_usd: 129,
+    precio_eur: 129,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 4.3,
@@ -186,7 +186,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Automatiza altas de empleados, firma documental y provisioning de accesos corporativos.",
     version: "1.2.8",
-    precio_usd: 99,
+    precio_eur: 99,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 4.0,
@@ -199,7 +199,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Gestiona solicitudes de compra, comparativas de proveedores y aprobaciones multinivel.",
     version: "3.4.1",
-    precio_usd: 189,
+    precio_eur: 189,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 4.5,
@@ -212,7 +212,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Prioriza bandejas compartidas, extrae acciones y redacta borradores con tono corporativo.",
     version: "1.8.5",
-    precio_usd: 49,
+    precio_eur: 49,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 3.9,
@@ -225,7 +225,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Arquitectura de referencia para automatizar procesos con human-in-the-loop y SLA tracking.",
     version: "1.0.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "automatizacion",
     rating_promedio: 4.4,
@@ -238,7 +238,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Mantiene CRM y helpdesk sincronizados con resolución de conflictos y deduplicación.",
     version: "2.3.0",
-    precio_usd: 79,
+    precio_eur: 79,
     tipo_activo: "runtime_artifact",
     categoria: "automatizacion",
     rating_promedio: 4.2,
@@ -253,7 +253,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Conciliación financiera con verificación criptográfica de salidas y registro inmutable.",
     version: "3.1.7",
-    precio_usd: 299,
+    precio_eur: 299,
     tipo_activo: "runtime_artifact",
     categoria: "finanzas",
     rating_promedio: 4.9,
@@ -266,7 +266,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Scoring crediticio con modelos explicables y trazabilidad regulatoria MiFID II.",
     version: "2.7.4",
-    precio_usd: 349,
+    precio_eur: 349,
     tipo_activo: "runtime_artifact",
     categoria: "finanzas",
     rating_promedio: 4.8,
@@ -279,7 +279,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Monitoriza exposición cambiaria y propone coberturas con simulación de escenarios.",
     version: "1.4.0",
-    precio_usd: 259,
+    precio_eur: 259,
     tipo_activo: "runtime_artifact",
     categoria: "finanzas",
     rating_promedio: 4.3,
@@ -292,7 +292,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Valida notas de gasto contra políticas internas y detecta duplicados o importes anómalos.",
     version: "2.2.1",
-    precio_usd: 69,
+    precio_eur: 69,
     tipo_activo: "runtime_artifact",
     categoria: "finanzas",
     rating_promedio: 4.0,
@@ -305,7 +305,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Arquitectura de referencia para tesorería con límites de aprobación y trazas ACID.",
     version: "1.1.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "finanzas",
     rating_promedio: 4.6,
@@ -318,7 +318,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Prepara declaraciones trimestrales con validación de series contables y alertas de inconsistencia.",
     version: "4.0.2",
-    precio_usd: 199,
+    precio_eur: 199,
     tipo_activo: "runtime_artifact",
     categoria: "finanzas",
     rating_promedio: 4.5,
@@ -333,7 +333,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Monitor GDPR/SOX con alertas en tiempo real y trazabilidad de decisiones automatizadas.",
     version: "1.8.0",
-    precio_usd: 199,
+    precio_eur: 199,
     tipo_activo: "runtime_artifact",
     categoria: "compliance",
     rating_promedio: 4.6,
@@ -346,7 +346,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Verifica identidad de clientes con listas OFAC/PEP y registro de evidencias auditables.",
     version: "2.5.0",
-    precio_usd: 279,
+    precio_eur: 279,
     tipo_activo: "runtime_artifact",
     categoria: "compliance",
     rating_promedio: 4.7,
@@ -359,7 +359,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Detecta desviaciones respecto a políticas internas en descriptores de agentes desplegados.",
     version: "1.0.4",
-    precio_usd: 149,
+    precio_eur: 149,
     tipo_activo: "runtime_artifact",
     categoria: "compliance",
     rating_promedio: 4.4,
@@ -372,7 +372,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Genera trails de cumplimiento exportables para auditorías externas e inspecciones regulatorias.",
     version: "3.2.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "compliance",
     rating_promedio: 4.3,
@@ -385,7 +385,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Gestiona consentimientos de usuarios, expiraciones y revocaciones con prueba documental.",
     version: "1.7.1",
-    precio_usd: 119,
+    precio_eur: 119,
     tipo_activo: "runtime_artifact",
     categoria: "compliance",
     rating_promedio: 4.1,
@@ -400,7 +400,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Coordina flotas de agentes con balanceo de carga, circuit breakers y cuotas por tenant.",
     version: "2.1.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "orquestacion",
     rating_promedio: 4.5,
@@ -413,7 +413,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Orquesta agentes multi-paso con presupuestos de tokens, fallback y métricas de latencia.",
     version: "1.0.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "orquestacion",
     rating_promedio: 4.2,
@@ -426,7 +426,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Enruta peticiones al agente óptimo según coste, latencia y nivel de certificación requerido.",
     version: "2.8.0",
-    precio_usd: 159,
+    precio_eur: 159,
     tipo_activo: "runtime_artifact",
     categoria: "orquestacion",
     rating_promedio: 4.6,
@@ -439,7 +439,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Supervisa DAGs de agentes con reintentos, compensaciones y checkpoints persistentes.",
     version: "1.9.4",
-    precio_usd: 139,
+    precio_eur: 139,
     tipo_activo: "runtime_artifact",
     categoria: "orquestacion",
     rating_promedio: 4.4,
@@ -452,7 +452,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Conecta agentes a buses de eventos con esquemas versionados y dead-letter queues.",
     version: "3.0.0",
-    precio_usd: 169,
+    precio_eur: 169,
     tipo_activo: "runtime_artifact",
     categoria: "orquestacion",
     rating_promedio: 4.3,
@@ -467,7 +467,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Pipelines ETL con validación de esquemas, calidad de datos y rollback transaccional.",
     version: "2.0.3",
-    precio_usd: 79,
+    precio_eur: 79,
     tipo_activo: "runtime_artifact",
     categoria: "datos",
     rating_promedio: 4.3,
@@ -480,7 +480,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Valida cambios de esquema en warehouses y bloquea despliegues que rompan contratos de datos.",
     version: "1.5.0",
-    precio_usd: 109,
+    precio_eur: 109,
     tipo_activo: "runtime_artifact",
     categoria: "datos",
     rating_promedio: 4.5,
@@ -493,7 +493,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Anonimiza datasets con k-anonymity configurable y informes de reidentificación.",
     version: "2.4.2",
-    precio_usd: 149,
+    precio_eur: 149,
     tipo_activo: "runtime_artifact",
     categoria: "datos",
     rating_promedio: 4.7,
@@ -506,7 +506,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Sincroniza lakehouse y OLTP con CDC, deduplicación y métricas de frescura.",
     version: "1.1.6",
-    precio_usd: 199,
+    precio_eur: 199,
     tipo_activo: "runtime_artifact",
     categoria: "datos",
     rating_promedio: 4.2,
@@ -519,7 +519,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Kit de referencia para reglas de calidad, profiling y alertas en pipelines de datos.",
     version: "1.0.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "datos",
     rating_promedio: 4.0,
@@ -534,7 +534,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Análisis de vulnerabilidades en descriptores de IA con scoring CVSS y remediación sugerida.",
     version: "4.2.0",
-    precio_usd: 249,
+    precio_eur: 249,
     tipo_activo: "runtime_artifact",
     categoria: "seguridad",
     rating_promedio: 4.7,
@@ -547,7 +547,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Correlaciona IOCs con telemetría de agentes y prioriza respuestas automáticas contenidas.",
     version: "2.0.8",
-    precio_usd: 289,
+    precio_eur: 289,
     tipo_activo: "runtime_artifact",
     categoria: "seguridad",
     rating_promedio: 4.8,
@@ -560,7 +560,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Aplica políticas de ejecución en sandboxes aislados con informes de violación detallados.",
     version: "3.3.1",
-    precio_usd: 319,
+    precio_eur: 319,
     tipo_activo: "runtime_artifact",
     categoria: "seguridad",
     rating_promedio: 4.9,
@@ -573,7 +573,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Rota credenciales de integraciones de agentes con ventanas de gracia y rollback seguro.",
     version: "1.6.3",
-    precio_usd: 179,
+    precio_eur: 179,
     tipo_activo: "runtime_artifact",
     categoria: "seguridad",
     rating_promedio: 4.4,
@@ -586,7 +586,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Arquitectura de referencia zero-trust para despliegue de agentes con mínimo privilegio.",
     version: "2.0.0",
-    precio_usd: 0,
+    precio_eur: 0,
     tipo_activo: "reference_architecture",
     categoria: "seguridad",
     rating_promedio: 4.6,
@@ -599,7 +599,7 @@ export const SEED_AGENTS: readonly SeedAgentInput[] = [
     descripcion:
       "Filtra intentos de jailbreak e inyección en runtime con reglas heurísticas y ML ligero.",
     version: "1.2.0",
-    precio_usd: 99,
+    precio_eur: 99,
     tipo_activo: "runtime_artifact",
     categoria: "seguridad",
     rating_promedio: 4.1,

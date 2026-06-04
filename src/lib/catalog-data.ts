@@ -17,7 +17,7 @@ interface AgenteRowRaw extends AgenteRowAuditFields {
   nombre: string;
   descripcion: string;
   version: string;
-  precio_usd: string | number;
+  precio_eur: string | number;
   tipo_activo: TipoActivo;
   categoria: CategoriaAgente | null;
   imagen_url: string | null;
@@ -37,7 +37,7 @@ const CATALOG_QUERY = `
     a.nombre,
     a.descripcion,
     a.version,
-    a.precio_usd,
+    a.precio_eur,
     a.tipo_activo,
     a.categoria,
     a.imagen_url,
@@ -79,7 +79,7 @@ const LEGACY_CATALOG_QUERY = `
     a.nombre,
     a.descripcion,
     a.version,
-    a.precio_usd,
+    a.precio_eur,
     a.tipo_activo,
     a.estado_auditoria,
     a.hash_integridad,
@@ -129,7 +129,7 @@ function mapRowToAgente(row: AgenteRowRaw): Agente {
     nombre: row.nombre,
     descripcion: row.descripcion,
     version: row.version,
-    precio_usd: parsePrecio(row.precio_usd),
+    precio_eur: parsePrecio(row.precio_eur),
     tipo_activo: row.tipo_activo,
     categoria: row.categoria ?? "automatizacion",
     imagen_url: row.imagen_url ?? null,

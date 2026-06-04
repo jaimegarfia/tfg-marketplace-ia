@@ -9,7 +9,7 @@ export const runtime = "nodejs";
 interface UploadPayload {
   nombre: string;
   version: string;
-  precio_usd: number;
+  precio_eur: number;
   tipo_activo: TipoActivo;
   descriptor_tecnico: string;
 }
@@ -35,7 +35,7 @@ function parsePayload(payload: unknown): UploadPayload {
   const version = String(data.version ?? "").trim();
   const tipo_activo = data.tipo_activo;
   const descriptor_tecnico = String(data.descriptor_tecnico ?? "").trim();
-  const precio = Number(data.precio_usd);
+  const precio = Number(data.precio_eur);
 
   if (!nombre) throw new Error("El nombre del activo es obligatorio.");
   if (!version) throw new Error("La versión es obligatoria.");
@@ -58,7 +58,7 @@ function parsePayload(payload: unknown): UploadPayload {
   return {
     nombre,
     version,
-    precio_usd: precio,
+    precio_eur: precio,
     tipo_activo,
     descriptor_tecnico,
   };
@@ -238,7 +238,7 @@ async function persistAuditedAsset(payload: UploadPayload): Promise<InsertResult
           nombre,
           descripcion,
           version,
-          precio_usd,
+          precio_eur,
           tipo_activo,
           categoria,
           imagen_url,
@@ -256,7 +256,7 @@ async function persistAuditedAsset(payload: UploadPayload): Promise<InsertResult
         payload.nombre,
         payload.descriptor_tecnico,
         payload.version,
-        payload.precio_usd,
+        payload.precio_eur,
         payload.tipo_activo,
         estadoAuditoria,
         engine.hash_integridad,

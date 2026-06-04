@@ -7,7 +7,7 @@ type TipoActivo = "runtime_artifact" | "reference_architecture";
 interface FormState {
   nombre: string;
   version: string;
-  precio_usd: string;
+  precio_eur: string;
   tipo_activo: TipoActivo;
   descriptor_tecnico: string;
 }
@@ -26,7 +26,7 @@ interface UploadAuditResult {
 const INITIAL_STATE: FormState = {
   nombre: "",
   version: "1.0.0",
-  precio_usd: "0",
+  precio_eur: "0",
   tipo_activo: "runtime_artifact",
   descriptor_tecnico: JSON.stringify(
     {
@@ -59,7 +59,7 @@ export default function AdminTestUploadPage() {
       isSubmitting ||
       !form.nombre.trim() ||
       !form.version.trim() ||
-      !form.precio_usd.trim() ||
+      !form.precio_eur.trim() ||
       !form.descriptor_tecnico.trim()
     );
   }, [form, isSubmitting]);
@@ -77,7 +77,7 @@ export default function AdminTestUploadPage() {
         body: JSON.stringify({
           nombre: form.nombre.trim(),
           version: form.version.trim(),
-          precio_usd: Number(form.precio_usd),
+          precio_eur: Number(form.precio_eur),
           tipo_activo: form.tipo_activo,
           descriptor_tecnico: form.descriptor_tecnico,
         }),
@@ -167,19 +167,19 @@ export default function AdminTestUploadPage() {
 
             <div className="space-y-2">
               <label
-                htmlFor="precio_usd"
+                htmlFor="precio_eur"
                 className="font-mono text-xs uppercase tracking-widest text-neutral-500"
               >
                 Precio (EUR)
               </label>
               <input
-                id="precio_usd"
+                id="precio_eur"
                 type="number"
                 min={0}
                 step="0.01"
-                value={form.precio_usd}
+                value={form.precio_eur}
                 onChange={(event) =>
-                  setForm((prev) => ({ ...prev, precio_usd: event.target.value }))
+                  setForm((prev) => ({ ...prev, precio_eur: event.target.value }))
                 }
                 className="w-full rounded-lg border border-neutral-800 bg-[#0c0f13] px-3 py-2 text-sm text-neutral-200 outline-none transition focus:border-neutral-600"
               />

@@ -12,7 +12,7 @@ export interface PublishAssetInput {
   developerId: string;
   nombre: string;
   version: string;
-  precioUsd: number;
+  precioEur: number;
   tipoActivo: TipoActivo;
   categoria: CategoriaAgente;
   descripcion: string;
@@ -71,7 +71,7 @@ export function validatePublishInput(
   if (!raw.descripcion.trim()) {
     return { ok: false, error: "La descripción comercial es obligatoria." };
   }
-  if (!Number.isFinite(raw.precioUsd) || raw.precioUsd < 0) {
+  if (!Number.isFinite(raw.precioEur) || raw.precioEur < 0) {
     return { ok: false, error: "El precio debe ser un número mayor o igual a 0." };
   }
   if (!VALID_TIPOS.has(raw.tipoActivo)) {
@@ -114,7 +114,7 @@ async function insertAuditedAsset(
         nombre,
         descripcion,
         version,
-        precio_usd,
+        precio_eur,
         tipo_activo,
         categoria,
         imagen_url,
@@ -135,7 +135,7 @@ async function insertAuditedAsset(
       input.nombre.trim(),
       input.descripcion.trim(),
       input.version.trim(),
-      input.precioUsd,
+      input.precioEur,
       input.tipoActivo,
       input.categoria,
       engine.estadoAuditoria,

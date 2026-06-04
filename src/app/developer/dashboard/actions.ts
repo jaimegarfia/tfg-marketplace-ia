@@ -78,7 +78,7 @@ export async function getDeveloperDashboardFromSession(): Promise<DeveloperDashb
 export interface PublishAssetActionInput {
   nombre: string;
   version: string;
-  precioUsd: number;
+  precioEur: number;
   tipoActivo: TipoActivo;
   categoria: CategoriaAgente;
   descripcion: string;
@@ -98,7 +98,7 @@ export async function publishAssetAction(
   const validation = validatePublishInput({
     nombre: input.nombre,
     version: input.version,
-    precioUsd: input.precioUsd,
+    precioEur: input.precioEur,
     tipoActivo: input.tipoActivo,
     categoria: input.categoria,
     descripcion: input.descripcion,
@@ -114,7 +114,7 @@ export async function publishAssetAction(
       developerId: session.developer.id,
       nombre: input.nombre,
       version: input.version,
-      precioUsd: input.precioUsd,
+      precioEur: input.precioEur,
       tipoActivo: input.tipoActivo,
       categoria: input.categoria,
       descripcion: input.descripcion,

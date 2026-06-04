@@ -47,7 +47,7 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   const CATEGORY_LOAD_MS = 320;
 
   const maxCatalogPrice = useMemo(
-    () => Math.max(0, ...agentes.map((a) => a.precio_usd)),
+    () => Math.max(0, ...agentes.map((a) => a.precio_eur)),
     [agentes],
   );
 
@@ -82,7 +82,7 @@ export function MarketplaceHome({ agentes }: MarketplaceHomeProps) {
   );
 
   const gratis = useMemo(
-    () => agentes.filter((a) => a.precio_usd === 0).slice(0, 4),
+    () => agentes.filter((a) => a.precio_eur === 0).slice(0, 4),
     [agentes],
   );
 
