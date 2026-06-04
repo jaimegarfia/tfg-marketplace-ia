@@ -29,10 +29,7 @@ export function DeveloperDashboardClient({ data }: DeveloperDashboardClientProps
         className="sticky top-0 z-50 bg-[#0b0d10]/95 backdrop-blur-md"
         style={{ ["--developer-chrome-height" as string]: "7.25rem" }}
       >
-        <DeveloperHeader
-          developerName={data.developer.nombre}
-          developerEmail={data.developer.email}
-        />
+        <DeveloperHeader />
         <DeveloperPanelNav
           activeTab={activeTab}
           onTabChange={setActiveTab}

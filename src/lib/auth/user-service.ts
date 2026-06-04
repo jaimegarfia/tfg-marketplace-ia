@@ -22,6 +22,7 @@ export interface RegisterInput {
   password: string;
   nombre: string;
   rol: RolUsuario;
+  empresa?: string | null;
 }
 
 export interface LoginInput {
@@ -64,14 +65,33 @@ export async function registerUser(
   const passwordHash = await hashPassword(input.password);
 
   try {
-    const rows = await query<{ id: string }>(
-      `
-        INSERT INTO usuarios (email, nombre, rol, avatar_url, password_hash)
-        VALUES ($1, $2, $3, NULL, $4)
-        RETURNING id::text AS id
-      `,
-      [email, input.nombre.trim(), input.rol, passwordHash],
-    );
+    const empresa = input.empresa?.trim() || null;
+    let rows: { id: string }[];
+
+    try {
+      rows = await query<{ id: string }>(
+        `
+          INSERT INTO usuarios (email, nombre, rol, avatar_url, password_hash, empresa)
+          VALUES ($1, $2, $3, NULL, $4, $5)
+          RETURNING id::text AS id
+        `,
+        [email, input.nombre.trim(), input.rol, passwordHash, empresa],
+      );
+    } catch (insertError) {
+      const msg =
+        insertError instanceof Error ? insertError.message : String(insertError);
+      if (!msg.includes("empresa")) {
+        throw insertError;
+      }
+      rows = await query<{ id: string }>(
+        `
+          INSERT INTO usuarios (email, nombre, rol, avatar_url, password_hash)
+          VALUES ($1, $2, $3, NULL, $4)
+          RETURNING id::text AS id
+        `,
+        [email, input.nombre.trim(), input.rol, passwordHash],
+      );
+    }
 
     const id = rows[0]?.id;
     if (!id) {

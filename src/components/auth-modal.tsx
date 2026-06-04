@@ -248,7 +248,6 @@ export function AuthModal() {
               aria-selected={!isDeveloperMode}
               onClick={() => {
                 setAccountMode("buyer");
-                setIsSignUp(false);
                 setErrorMessage(null);
               }}
               className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${
@@ -265,7 +264,6 @@ export function AuthModal() {
               aria-selected={isDeveloperMode}
               onClick={() => {
                 setAccountMode("developer");
-                setIsSignUp(true);
                 setErrorMessage(null);
               }}
               className={`rounded-md px-2.5 py-1.5 text-xs font-medium transition ${

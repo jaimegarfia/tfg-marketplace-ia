@@ -102,16 +102,15 @@ export async function registerAction(input: {
       ? "desarrollador"
       : "empresa";
 
-  const nombre =
-    input.accountType === "developer"
-      ? input.nombre.trim()
-      : input.companyName?.trim() || input.nombre.trim();
-
   const registerInput: RegisterInput = {
     email: input.email,
     password: input.password,
-    nombre,
+    nombre: input.nombre.trim(),
     rol,
+    empresa:
+      input.accountType === "buyer"
+        ? input.companyName?.trim() || null
+        : null,
   };
 
   const result = await registerUser(registerInput);
