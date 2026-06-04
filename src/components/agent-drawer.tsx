@@ -287,6 +287,7 @@ interface DeploymentGuideTabProps {
 
 function DeploymentGuideTab({ agente, permisos }: DeploymentGuideTabProps) {
   const guide = buildDeploymentGuide(agente, permisos);
+  const developerGuia = agente.guia_despliegue?.trim();
   const HeaderIcon = guide.variant === "runtime_artifact" ? Server : Workflow;
   const iconClass =
     guide.variant === "runtime_artifact"
@@ -295,6 +296,21 @@ function DeploymentGuideTab({ agente, permisos }: DeploymentGuideTabProps) {
 
   return (
     <div className="space-y-5">
+      {developerGuia && (
+        <section className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
+          <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80">
+            Instrucciones del desarrollador
+          </p>
+          <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
+            {developerGuia}
+          </div>
+        </section>
+      )}
+
+      <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
+        Referencia técnica Certia
+      </p>
+
       <div className="flex items-start gap-3">
         <HeaderIcon
           size={16}
@@ -346,6 +362,7 @@ function DeploymentGuideTab({ agente, permisos }: DeploymentGuideTabProps) {
 }
 
 interface AdaptationServicesTabProps {
+  admiteAdaptacion: boolean;
   isSubmitting: boolean;
   contextoPrivadoDesc: string;
   onContextoChange: (value: string) => void;
@@ -354,14 +371,33 @@ interface AdaptationServicesTabProps {
 }
 
 function AdaptationServicesTab({
+  admiteAdaptacion,
   isSubmitting,
   contextoPrivadoDesc,
   onContextoChange,
   onSubmit,
   formError,
 }: AdaptationServicesTabProps) {
+  if (!admiteAdaptacion) {
+    return (
+      <div className="rounded-lg border border-neutral-800/80 bg-neutral-950/40 p-4">
+        <p className="text-sm font-medium text-neutral-300">
+          Adaptación no disponible
+        </p>
+        <p className="mt-2 text-sm leading-relaxed text-neutral-500">
+          El desarrollador no ofrece servicios de adaptación o fine-tuning para
+          este activo. Puedes desplegarlo según la guía estándar o contactar al
+          vendedor por otros canales.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-5">
+      <p className="inline-flex rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300/90">
+        Adaptación disponible
+      </p>
       <p className="text-sm leading-relaxed text-neutral-400">
         Si tu organización requiere conectar este agente con fuentes de datos
         privadas o necesita una arquitectura a medida, puedes solicitar un
@@ -652,6 +688,16 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
             <p className="text-sm leading-relaxed text-neutral-400">
               {agente.descripcion}
             </p>
+
+            {agente.admite_adaptacion ? (
+              <span className="inline-flex rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300/90">
+                Adaptación disponible
+              </span>
+            ) : (
+              <span className="inline-flex rounded-md border border-neutral-700/80 bg-neutral-900/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+                Sin servicio de adaptación
+              </span>
+            )}
           </div>
 
           <DrawerTabBar activeTab={activeTab} onTabChange={setActiveTab} />
@@ -694,6 +740,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
                 aria-labelledby="drawer-tab-adaptacion"
               >
                 <AdaptationServicesTab
+                  admiteAdaptacion={agente.admite_adaptacion}
                   isSubmitting={isSubmitting}
                   contextoPrivadoDesc={contextoPrivadoDesc}
                   onContextoChange={setContextoPrivadoDesc}

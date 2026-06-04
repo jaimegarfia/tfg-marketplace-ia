@@ -18,6 +18,7 @@ export interface CatalogFilters {
   precioMin: number | null;
   precioMax: number | null;
   soloGratis: boolean;
+  soloAdaptacion: boolean;
   sort: SortOption;
 }
 
@@ -28,6 +29,7 @@ export const DEFAULT_FILTERS: CatalogFilters = {
   precioMin: null,
   precioMax: null,
   soloGratis: false,
+  soloAdaptacion: false,
   sort: "relevancia",
 };
 
@@ -81,6 +83,7 @@ export function parseFiltersFromSearchParams(
     precioMin: parseNumber(params.get("min")),
     precioMax: parseNumber(params.get("max")),
     soloGratis: params.get("gratis") === "1",
+    soloAdaptacion: params.get("adaptacion") === "1",
     sort: VALID_SORT.has(sortRaw) ? (sortRaw as SortOption) : "relevancia",
   };
 }
@@ -93,6 +96,7 @@ export function filtersToSearchParams(filters: CatalogFilters): URLSearchParams 
   if (filters.precioMin !== null) params.set("min", String(filters.precioMin));
   if (filters.precioMax !== null) params.set("max", String(filters.precioMax));
   if (filters.soloGratis) params.set("gratis", "1");
+  if (filters.soloAdaptacion) params.set("adaptacion", "1");
   if (filters.sort !== "relevancia") params.set("sort", filters.sort);
   return params;
 }
@@ -123,6 +127,9 @@ export function filterAgentes(
       return false;
     }
     if (filters.soloGratis && agente.precio_eur !== 0) {
+      return false;
+    }
+    if (filters.soloAdaptacion && !agente.admite_adaptacion) {
       return false;
     }
     if (filters.precioMin !== null && agente.precio_eur < filters.precioMin) {
@@ -190,6 +197,7 @@ export function hasActiveFilters(filters: CatalogFilters): boolean {
     filters.categoria !== "todos" ||
     filters.tipo !== "todos" ||
     filters.soloGratis ||
+    filters.soloAdaptacion ||
     filters.precioMin !== null ||
     filters.precioMax !== null ||
     filters.sort !== "relevancia"

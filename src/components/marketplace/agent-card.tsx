@@ -1,14 +1,14 @@
 "use client";
 
-import { Star, ShieldCheck, ShoppingCart } from "lucide-react";
+import { ShieldCheck, ShoppingCart } from "lucide-react";
 import type { AgenteConAuditoria } from "@/types/database";
 import {
   etiquetaCategoria,
   etiquetaTipoActivo,
   formatearPrecio,
-  formatearRating,
 } from "@/lib/catalog-format";
-import { getPlaceholder } from "@/lib/placeholders";
+import { AgentCardRating } from "@/components/marketplace/agent-card-rating";
+import { AssetCardVisual } from "@/components/marketplace/asset-card-visual";
 
 interface AgentCardProps {
   agente: AgenteConAuditoria;
@@ -17,9 +17,9 @@ interface AgentCardProps {
 }
 
 export function AgentCard({ agente, onSelect, onAcquire }: AgentCardProps) {
-  const placeholder = getPlaceholder(agente.categoria);
-  const PlaceholderIcon = placeholder.icon;
   const certificado = agente.estado_auditoria === "certificado";
+  const estudio =
+    agente.desarrollador_nombre?.trim() || null;
 
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-xl border border-neutral-800/80 bg-[var(--surface)] transition hover:border-neutral-600/70 hover:shadow-lg hover:shadow-black/20">
@@ -28,24 +28,11 @@ export function AgentCard({ agente, onSelect, onAcquire }: AgentCardProps) {
         onClick={() => onSelect(agente)}
         className="flex flex-1 flex-col text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-neutral-500 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b0d10]"
       >
-        <div
-          className={`relative flex aspect-[4/3] items-center justify-center bg-gradient-to-br ${placeholder.gradient}`}
-        >
-          {agente.imagen_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={agente.imagen_url}
-              alt=""
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            <PlaceholderIcon
-              size={40}
-              strokeWidth={1.25}
-              className="text-neutral-300/70"
-              aria-hidden="true"
-            />
-          )}
+        <div className="relative">
+          <AssetCardVisual
+            imagenUrl={agente.imagen_url}
+            categoria={agente.categoria}
+          />
           {certificado && (
             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-md bg-emerald-950/80 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300/90 backdrop-blur-sm">
               <ShieldCheck size={10} aria-hidden="true" />
@@ -55,44 +42,32 @@ export function AgentCard({ agente, onSelect, onAcquire }: AgentCardProps) {
         </div>
 
         <div className="flex flex-1 flex-col p-3 sm:p-4">
-          <p className="text-[10px] uppercase tracking-wide text-neutral-500">
-            {etiquetaCategoria(agente.categoria)} ·{" "}
-            {etiquetaTipoActivo(agente.tipo_activo)}
-          </p>
+          <div className="flex flex-wrap items-center gap-1.5">
+            <p className="text-[10px] uppercase tracking-wide text-neutral-500">
+              {etiquetaCategoria(agente.categoria)} ·{" "}
+              {etiquetaTipoActivo(agente.tipo_activo)}
+            </p>
+            {agente.admite_adaptacion ? (
+              <span className="rounded border border-emerald-500/20 bg-emerald-500/10 px-1.5 py-px text-[9px] font-medium uppercase tracking-wide text-emerald-300/90">
+                Adaptación
+              </span>
+            ) : (
+              <span className="rounded border border-neutral-700/60 px-1.5 py-px text-[9px] uppercase tracking-wide text-neutral-600">
+                Sin adaptación
+              </span>
+            )}
+          </div>
           <h3 className="mt-1 line-clamp-2 text-sm font-medium leading-snug text-neutral-100 group-hover:text-white">
             {agente.nombre}
           </h3>
 
-          {agente.num_valoraciones > 0 && (
-            <div className="mt-2 flex items-center gap-1.5">
-              <div className="flex items-center text-amber-400/90">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={11}
-                    strokeWidth={1.5}
-                    className={
-                      i < Math.round(agente.rating_promedio)
-                        ? "fill-amber-400/90 text-amber-400/90"
-                        : "text-neutral-700"
-                    }
-                    aria-hidden="true"
-                  />
-                ))}
-              </div>
-              <span className="text-xs text-amber-400/80">
-                {formatearRating(agente.rating_promedio)}
-              </span>
-              <span className="text-xs text-neutral-500">
-                ({agente.num_valoraciones})
-              </span>
-            </div>
-          )}
+          <AgentCardRating
+            ratingPromedio={agente.rating_promedio}
+            numValoraciones={agente.num_valoraciones}
+          />
 
-          {agente.desarrollador_nombre && (
-            <p className="mt-1 text-xs text-neutral-500">
-              por {agente.desarrollador_nombre}
-            </p>
+          {estudio && (
+            <p className="mt-1 text-xs text-neutral-500">por {estudio}</p>
           )}
 
           <p className="mt-2 line-clamp-2 flex-1 text-xs leading-relaxed text-neutral-500">

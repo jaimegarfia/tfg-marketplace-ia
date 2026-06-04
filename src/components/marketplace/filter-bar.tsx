@@ -39,6 +39,7 @@ export function FilterBar({
   const hasExtraFilters =
     filters.tipo !== "todos" ||
     filters.soloGratis ||
+    filters.soloAdaptacion ||
     filters.precioMin !== null ||
     filters.precioMax !== null ||
     filters.sort !== "relevancia";
@@ -119,6 +120,17 @@ export function FilterBar({
           className={filterChipClass(filters.soloGratis)}
         >
           Gratis
+        </button>
+
+        <button
+          type="button"
+          aria-pressed={filters.soloAdaptacion}
+          onClick={() =>
+            onChange({ soloAdaptacion: !filters.soloAdaptacion })
+          }
+          className={filterChipClass(filters.soloAdaptacion)}
+        >
+          Con adaptación
         </button>
 
         <div

@@ -49,7 +49,12 @@ export function DeveloperDashboardClient({ data }: DeveloperDashboardClientProps
         )}
 
         {activeTab === "publicar" && (
-          <TabPublish onPublished={() => setActiveTab("resumen")} />
+          <TabPublish
+            defaultEstudioComercial={
+              data.developer.empresa?.trim() || data.developer.nombre
+            }
+            onPublished={() => setActiveTab("resumen")}
+          />
         )}
 
         {activeTab === "adaptaciones" && (

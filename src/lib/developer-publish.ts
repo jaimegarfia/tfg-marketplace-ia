@@ -1,6 +1,10 @@
 import type { PoolClient } from "@neondatabase/serverless";
 import { withTransaction } from "@/lib/db";
 import { runSimulatedAuditEngine } from "@/lib/audit-engine";
+import {
+  isAssetVisualIconId,
+  type AssetVisualIconId,
+} from "@/lib/asset-visual-icons";
 import type {
   ApprovedPermissions,
   CategoriaAgente,
@@ -17,6 +21,9 @@ export interface PublishAssetInput {
   categoria: CategoriaAgente;
   descripcion: string;
   descriptorTecnico: string;
+  imagenUrl: string;
+  estudioComercial?: string | null;
+  admiteAdaptacion: boolean;
 }
 
 export interface PublishAssetResult {
@@ -81,6 +88,9 @@ export function validatePublishInput(
   if (!VALID_CATEGORIAS.has(raw.categoria)) {
     return { ok: false, error: "Categoría inválida." };
   }
+  if (!isAssetVisualIconId(raw.imagenUrl)) {
+    return { ok: false, error: "Selecciona un icono visual válido para el activo." };
+  }
   if (!raw.descriptorTecnico.trim()) {
     return { ok: false, error: "El descriptor técnico (JSON) es obligatorio." };
   }
@@ -93,6 +103,28 @@ export function validatePublishInput(
     };
   }
   return { ok: true };
+}
+
+async function persistDeveloperEstudio(
+  client: PoolClient,
+  developerId: string,
+  estudio: string | null | undefined,
+): Promise<void> {
+  const trimmed = estudio?.trim();
+  if (!trimmed) return;
+
+  try {
+    await client.query(
+      `
+        UPDATE usuarios
+        SET empresa = $2
+        WHERE id = $1::uuid AND rol = 'desarrollador'
+      `,
+      [developerId, trimmed],
+    );
+  } catch {
+    // Columna empresa opcional en despliegues sin migración.
+  }
 }
 
 async function insertAuditedAsset(
@@ -108,48 +140,90 @@ async function insertAuditedAsset(
     ? `sig_ed25519_${slugify(input.nombre)}`
     : null;
 
-  const inserted = await client.query<{ id: string }>(
-    `
-      INSERT INTO agentes (
-        desarrollador_id,
-        nombre,
-        descripcion,
-        version,
-        precio_eur,
-        tipo_activo,
-        categoria,
-        imagen_url,
-        rating_promedio,
-        num_valoraciones,
-        estado_auditoria,
-        hash_integridad,
-        firma_digital
-      )
-      VALUES (
-        $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
-        NULL, 0, 0, $8, $9, $10
-      )
-      RETURNING id::text AS id
-    `,
-    [
-      input.developerId,
-      input.nombre.trim(),
-      input.descripcion.trim(),
-      input.version.trim(),
-      input.precioEur,
-      input.tipoActivo,
-      input.categoria,
-      engine.estadoAuditoria,
-      engine.hash_integridad,
-      firmaDigital,
-    ],
-  );
+  const params = [
+    input.developerId,
+    input.nombre.trim(),
+    input.descripcion.trim(),
+    input.version.trim(),
+    input.precioEur,
+    input.tipoActivo,
+    input.categoria,
+    input.imagenUrl,
+    engine.estadoAuditoria,
+    engine.hash_integridad,
+    firmaDigital,
+    input.admiteAdaptacion,
+  ];
 
-  const id = inserted.rows[0]?.id;
-  if (!id) {
-    throw new Error("No se pudo registrar el activo en el catálogo.");
+  try {
+    const inserted = await client.query<{ id: string }>(
+      `
+        INSERT INTO agentes (
+          desarrollador_id,
+          nombre,
+          descripcion,
+          version,
+          precio_eur,
+          tipo_activo,
+          categoria,
+          imagen_url,
+          rating_promedio,
+          num_valoraciones,
+          estado_auditoria,
+          hash_integridad,
+          firma_digital,
+          admite_adaptacion
+        )
+        VALUES (
+          $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
+          $8, 0, 0, $9, $10, $11, $12
+        )
+        RETURNING id::text AS id
+      `,
+      params,
+    );
+    const id = inserted.rows[0]?.id;
+    if (!id) {
+      throw new Error("No se pudo registrar el activo en el catálogo.");
+    }
+    return id;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (!message.includes("admite_adaptacion")) {
+      throw error;
+    }
+
+    const inserted = await client.query<{ id: string }>(
+      `
+        INSERT INTO agentes (
+          desarrollador_id,
+          nombre,
+          descripcion,
+          version,
+          precio_eur,
+          tipo_activo,
+          categoria,
+          imagen_url,
+          rating_promedio,
+          num_valoraciones,
+          estado_auditoria,
+          hash_integridad,
+          firma_digital
+        )
+        VALUES (
+          $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
+          $8, 0, 0, $9, $10, $11
+        )
+        RETURNING id::text AS id
+      `,
+      params.slice(0, 11),
+    );
+    const id = inserted.rows[0]?.id;
+    if (!id) {
+      throw new Error("No se pudo registrar el activo en el catálogo.");
+    }
+    return id;
   }
-  return id;
 }
 
 async function insertAuditoria(
@@ -219,6 +293,12 @@ export async function publishDeveloperAsset(
       hash_integridad: engine.hash_integridad,
       estadoAuditoria,
     });
+
+    await persistDeveloperEstudio(
+      client,
+      input.developerId,
+      input.estudioComercial,
+    );
 
     await insertAuditoria(
       client,

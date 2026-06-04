@@ -26,6 +26,8 @@ interface AgenteRowRaw extends AgenteRowAuditFields {
   estado_auditoria: Agente["estado_auditoria"];
   hash_integridad: string | null;
   firma_digital: string | null;
+  guia_despliegue: string | null;
+  admite_adaptacion: boolean | null;
   created_at: string;
 }
 
@@ -33,7 +35,7 @@ const CATALOG_QUERY = `
   SELECT
     a.id::text AS id,
     a.desarrollador_id::text AS desarrollador_id,
-    u.nombre AS desarrollador_nombre,
+    COALESCE(NULLIF(TRIM(u.empresa), ''), u.nombre) AS desarrollador_nombre,
     a.nombre,
     a.descripcion,
     a.version,
@@ -46,6 +48,8 @@ const CATALOG_QUERY = `
     a.estado_auditoria,
     a.hash_integridad,
     a.firma_digital,
+    a.guia_despliegue,
+    a.admite_adaptacion,
     a.created_at::text AS created_at,
     au.resultado_global AS audit_resultado,
     au.logs_sandbox AS audit_logs,
@@ -75,7 +79,7 @@ const LEGACY_CATALOG_QUERY = `
   SELECT
     a.id::text AS id,
     a.desarrollador_id::text AS desarrollador_id,
-    u.nombre AS desarrollador_nombre,
+    COALESCE(NULLIF(TRIM(u.empresa), ''), u.nombre) AS desarrollador_nombre,
     a.nombre,
     a.descripcion,
     a.version,
@@ -138,6 +142,8 @@ function mapRowToAgente(row: AgenteRowRaw): Agente {
     estado_auditoria: row.estado_auditoria,
     hash_integridad: row.hash_integridad,
     firma_digital: row.firma_digital,
+    guia_despliegue: row.guia_despliegue ?? null,
+    admite_adaptacion: row.admite_adaptacion ?? false,
     created_at: row.created_at,
   };
 }
@@ -171,7 +177,9 @@ export async function getCatalogoAgentes(): Promise<AgenteConAuditoria[]> {
       message.includes("categoria") ||
       message.includes("imagen_url") ||
       message.includes("rating_promedio") ||
-      message.includes("num_valoraciones");
+      message.includes("num_valoraciones") ||
+      message.includes("guia_despliegue") ||
+      message.includes("admite_adaptacion");
 
     if (missingMarketplaceColumns) {
       try {
@@ -183,6 +191,8 @@ export async function getCatalogoAgentes(): Promise<AgenteConAuditoria[]> {
             imagen_url: null,
             rating_promedio: null,
             num_valoraciones: null,
+            guia_despliegue: null,
+            admite_adaptacion: false,
           })),
         );
       } catch (legacyError) {

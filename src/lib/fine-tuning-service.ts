@@ -124,22 +124,38 @@ async function insertServicioFineTuning(
   return servicioId;
 }
 
-async function assertAgenteExists(
+async function assertAgenteAdmiteAdaptacion(
   client: PoolClient,
   agenteId: string,
 ): Promise<void> {
-  const rows = await client.query<{ id: string }>(
-    `
-      SELECT id::text AS id
-      FROM agentes
-      WHERE id = $1::uuid
-      LIMIT 1
-    `,
-    [agenteId],
-  );
+  try {
+    const rows = await client.query<{ admite: boolean }>(
+      `
+        SELECT admite_adaptacion AS admite
+        FROM agentes
+        WHERE id = $1::uuid AND estado_auditoria = 'certificado'
+        LIMIT 1
+      `,
+      [agenteId],
+    );
 
-  if (!rows.rows[0]?.id) {
-    throw new Error("El agente indicado no existe en el catálogo.");
+    const row = rows.rows[0];
+    if (!row) {
+      throw new Error("El agente indicado no existe en el catálogo.");
+    }
+    if (!row.admite) {
+      throw new Error(
+        "Este activo no admite servicios de adaptación. Elige otro activo del catálogo.",
+      );
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (message.includes("admite_adaptacion")) {
+      throw new Error(
+        "La base de datos aún no soporta el flag de adaptación. Ejecuta scripts/migration-guia-adaptacion.sql.",
+      );
+    }
+    throw error;
   }
 }
 
@@ -154,7 +170,7 @@ export async function createFineTuningRequest(
   }
 
   return withTransaction(async (client) => {
-    await assertAgenteExists(client, input.agenteId);
+    await assertAgenteAdmiteAdaptacion(client, input.agenteId);
 
     const empresaId = await resolveEmpresaId(
       client,

@@ -338,8 +338,16 @@ export function validateUpdateAssetInput(
   if (!Number.isFinite(input.precioEur) || input.precioEur < 0) {
     return { ok: false, error: "El precio debe ser mayor o igual a 0." };
   }
-  if (input.imagenUrl && !/^https?:\/\/.+/i.test(input.imagenUrl.trim())) {
-    return { ok: false, error: "La URL de imagen debe comenzar por http:// o https://." };
+  const imagen = input.imagenUrl?.trim();
+  if (
+    imagen &&
+    !/^https?:\/\/.+/i.test(imagen) &&
+    !imagen.startsWith("certia-icon:")
+  ) {
+    return {
+      ok: false,
+      error: "La imagen debe ser una URL http(s) o un icono predefinido del catálogo.",
+    };
   }
   return { ok: true };
 }

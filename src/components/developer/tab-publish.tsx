@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useCallback, useState, type FormEvent } from "react";
 import {
   Box,
   CheckCircle2,
@@ -12,7 +12,13 @@ import {
   XCircle,
 } from "lucide-react";
 import type { CategoriaAgente, TipoActivo } from "@/types/database";
+import {
+  DEFAULT_ASSET_VISUAL_ICON,
+  type AssetVisualIconId,
+} from "@/lib/asset-visual-icons";
+import { AssetVisualIconPicker } from "@/components/developer/asset-visual-icon-picker";
 import { CATEGORIAS_AGENTE, etiquetaCategoria } from "@/lib/catalog-format";
+import { validatePublishConfig } from "@/lib/publish-descriptor";
 import { VerifiedPermissionsScope } from "@/components/verified-permissions-scope";
 import {
   publishAssetAction,
@@ -23,8 +29,10 @@ import {
   CertificationOverlay,
   runCertificationPhasesDuring,
 } from "@/components/developer/certification-overlay";
+import { PublishConfigByTipo } from "@/components/developer/publish-config-fields";
+import { PostAuditCatalogPanel } from "@/components/developer/post-audit-catalog-panel";
 
-const DEFAULT_DESCRIPTOR = JSON.stringify(
+const DEFAULT_FLOW_DESCRIPTOR = JSON.stringify(
   {
     workflow: {
       engine: "n8n",
@@ -36,6 +44,21 @@ const DEFAULT_DESCRIPTOR = JSON.stringify(
         },
         { id: "summarize", action: "llm.completion", model: "gpt-4o-mini" },
       ],
+    },
+  },
+  null,
+  2,
+);
+
+const DEFAULT_MANIFEST_JSON = JSON.stringify(
+  {
+    env: {
+      CERTIA_AGENT_ID: "",
+      LOG_LEVEL: "info",
+    },
+    resources: {
+      memory: "128m",
+      cpus: "0.5",
     },
   },
   null,
@@ -69,28 +92,40 @@ const TIPO_OPTIONS: ReadonlyArray<{ value: TipoActivo; label: string }> = [
   { value: "runtime_artifact", label: "Artefacto ejecutable (contenedor)" },
   {
     value: "reference_architecture",
-    label: "Arquitectura de referencia (workflow)",
+    label: "Arquitectura de referencia (automatización / workflow)",
   },
 ];
 
+type TipoSeleccion = TipoActivo | "";
+
 interface FormState {
+  tipoActivo: TipoSeleccion;
   nombre: string;
   version: string;
   precioEur: string;
-  tipoActivo: TipoActivo;
   categoria: CategoriaAgente;
+  imagenUrl: AssetVisualIconId;
+  estudioComercial: string;
   descripcion: string;
-  descriptorTecnico: string;
+  flowDescriptor: string;
+  imageRegistryUri: string;
+  manifestJson: string;
+  admiteAdaptacion: boolean;
 }
 
 const INITIAL_FORM: FormState = {
+  tipoActivo: "",
   nombre: "",
   version: "1.0.0",
   precioEur: "0",
-  tipoActivo: "runtime_artifact",
   categoria: "automatizacion",
+  imagenUrl: DEFAULT_ASSET_VISUAL_ICON,
+  estudioComercial: "",
   descripcion: "",
-  descriptorTecnico: DEFAULT_DESCRIPTOR,
+  flowDescriptor: DEFAULT_FLOW_DESCRIPTOR,
+  imageRegistryUri: "",
+  manifestJson: DEFAULT_MANIFEST_JSON,
+  admiteAdaptacion: false,
 };
 
 const FIELD_CLASS =
@@ -231,10 +266,46 @@ function AuditResultPanel({ result }: { result: PublishAssetResult }) {
   );
 }
 
-export function TabPublish({ onPublished }: { onPublished: () => void }) {
+function PublishToast({
+  message,
+  variant,
+}: {
+  message: string;
+  variant: "error" | "success";
+}) {
+  return (
+    <p
+      role="status"
+      className={`rounded-lg border px-3 py-2 text-sm ${
+        variant === "error"
+          ? "border-red-400/25 bg-red-400/10 text-red-300/90"
+          : "border-emerald-400/20 bg-emerald-400/10 text-emerald-300/90"
+      }`}
+    >
+      {message}
+    </p>
+  );
+}
+
+interface TabPublishProps {
+  onPublished: () => void;
+  defaultEstudioComercial?: string | null;
+}
+
+export function TabPublish({
+  onPublished,
+  defaultEstudioComercial = "",
+}: TabPublishProps) {
   const router = useRouter();
-  const [form, setForm] = useState<FormState>(INITIAL_FORM);
+  const [form, setForm] = useState<FormState>(() => ({
+    ...INITIAL_FORM,
+    estudioComercial: defaultEstudioComercial?.trim() ?? "",
+  }));
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    variant: "error" | "success";
+  } | null>(null);
   const [result, setResult] = useState<PublishAssetResult | null>(null);
   const [isAuditing, setIsAuditing] = useState(false);
   const [phaseIndex, setPhaseIndex] = useState(0);
@@ -243,10 +314,32 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const showSyntaxToast = useCallback((message: string) => {
+    setToast({ message, variant: "error" });
+  }, []);
+
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError(null);
+    setToast(null);
     setResult(null);
+
+    if (!form.tipoActivo) {
+      setError("Selecciona primero el tipo de activo para continuar.");
+      return;
+    }
+
+    const configCheck = validatePublishConfig({
+      tipoActivo: form.tipoActivo,
+      flowDescriptor: form.flowDescriptor,
+      imageRegistryUri: form.imageRegistryUri,
+      manifestJson: form.manifestJson,
+    });
+
+    if (!configCheck.ok) {
+      setError(configCheck.error);
+      return;
+    }
 
     const payload: PublishAssetActionInput = {
       nombre: form.nombre,
@@ -255,7 +348,10 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
       tipoActivo: form.tipoActivo,
       categoria: form.categoria,
       descripcion: form.descripcion,
-      descriptorTecnico: form.descriptorTecnico,
+      descriptorTecnico: configCheck.descriptorTecnico,
+      imagenUrl: form.imagenUrl,
+      estudioComercial: form.estudioComercial.trim() || null,
+      admiteAdaptacion: form.admiteAdaptacion,
     };
 
     setIsAuditing(true);
@@ -284,7 +380,10 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
       setResult(response.result);
       setForm((prev) => ({
         ...INITIAL_FORM,
-        descriptorTecnico: prev.descriptorTecnico,
+        tipoActivo: prev.tipoActivo,
+        flowDescriptor: prev.flowDescriptor,
+        imageRegistryUri: prev.imageRegistryUri,
+        manifestJson: prev.manifestJson,
       }));
       router.refresh();
       onPublished();
@@ -299,6 +398,8 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
     }
   };
 
+  const tipoResolved = form.tipoActivo !== "";
+
   return (
     <div className="space-y-6">
       {isAuditing && <CertificationOverlay phaseIndex={phaseIndex} />}
@@ -308,8 +409,8 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
           Publicar nuevo activo
         </h2>
         <p className="mt-1 text-sm text-neutral-500">
-          Cada activo pasa por una auditoría automática en un contenedor aislado
-          antes de aparecer en el marketplace.
+          Elige el tipo de activo para configurar el flujo o el contenedor; cada
+          publicación pasa por auditoría automática en sandbox aislado.
         </p>
       </div>
 
@@ -319,88 +420,41 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
         onSubmit={handleSubmit}
         className="space-y-5 rounded-xl border border-neutral-800/80 bg-neutral-950/30 p-5 sm:p-6"
       >
-        <div className="space-y-1.5">
-          <label htmlFor="pub-nombre" className={LABEL_CLASS}>
-            Nombre del activo
+        <div className="rounded-lg border border-emerald-500/10 bg-emerald-500/[0.03] p-4">
+          <label htmlFor="pub-tipo" className={LABEL_CLASS}>
+            Tipo de activo
           </label>
-          <input
-            id="pub-nombre"
-            value={form.nombre}
+          <select
+            id="pub-tipo"
+            value={form.tipoActivo}
             disabled={isAuditing}
-            onChange={(event) => setField("nombre", event.target.value)}
-            placeholder="Ej. Sentinel Runtime Guard"
-            className={FIELD_CLASS}
-          />
+            onChange={(event) => {
+              const value = event.target.value as TipoSeleccion;
+              setField("tipoActivo", value);
+              setToast(null);
+            }}
+            className={`${FIELD_CLASS} text-base`}
+          >
+            <option value="" disabled>
+              Selecciona cómo vas a publicar el activo…
+            </option>
+            {TIPO_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <p className="mt-2 text-[11px] text-neutral-600">
+            {form.tipoActivo === "reference_architecture"
+              ? "Automatización: carga un flujo declarativo (.json / .yaml) y edítalo en el IDE integrado."
+              : form.tipoActivo === "runtime_artifact"
+                ? "Contenedor: indica la URI del registro y el manifiesto JSON del runtime."
+                : "Este paso define qué bloque de configuración verás a continuación."}
+          </p>
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="pub-desc" className={LABEL_CLASS}>
-            Descripción comercial
-          </label>
-          <textarea
-            id="pub-desc"
-            rows={2}
-            value={form.descripcion}
-            disabled={isAuditing}
-            onChange={(event) => setField("descripcion", event.target.value)}
-            placeholder="Qué hace el agente y para qué casos de uso está pensado."
-            className={`${FIELD_CLASS} resize-y`}
-          />
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-1.5">
-            <label htmlFor="pub-version" className={LABEL_CLASS}>
-              Versión
-            </label>
-            <input
-              id="pub-version"
-              value={form.version}
-              disabled={isAuditing}
-              onChange={(event) => setField("version", event.target.value)}
-              placeholder="1.0.0"
-              className={FIELD_CLASS}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="pub-precio" className={LABEL_CLASS}>
-              Precio (EUR)
-            </label>
-            <input
-              id="pub-precio"
-              type="number"
-              min={0}
-              step="1"
-              value={form.precioEur}
-              disabled={isAuditing}
-              onChange={(event) => setField("precioEur", event.target.value)}
-              className={FIELD_CLASS}
-            />
-          </div>
-
-          <div className="space-y-1.5">
-            <label htmlFor="pub-tipo" className={LABEL_CLASS}>
-              Tipo de activo
-            </label>
-            <select
-              id="pub-tipo"
-              value={form.tipoActivo}
-              disabled={isAuditing}
-              onChange={(event) =>
-                setField("tipoActivo", event.target.value as TipoActivo)
-              }
-              className={FIELD_CLASS}
-            >
-              {TIPO_OPTIONS.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1.5">
+        <div className="space-y-4">
+          <div className="space-y-1.5 sm:max-w-xs">
             <label htmlFor="pub-categoria" className={LABEL_CLASS}>
               Categoría
             </label>
@@ -420,28 +474,145 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
               ))}
             </select>
           </div>
+
+          <AssetVisualIconPicker
+            value={form.imagenUrl}
+            onChange={(iconId) => setField("imagenUrl", iconId)}
+            disabled={isAuditing}
+          />
         </div>
 
-        <div className="space-y-1.5">
-          <label htmlFor="pub-descriptor" className={LABEL_CLASS}>
-            Descriptor técnico (JSON del flujo)
-          </label>
-          <textarea
-            id="pub-descriptor"
-            rows={12}
-            spellCheck={false}
-            value={form.descriptorTecnico}
-            disabled={isAuditing}
-            onChange={(event) =>
-              setField("descriptorTecnico", event.target.value)
+        {tipoResolved ? (
+          <PublishConfigByTipo
+            tipoActivo={form.tipoActivo as TipoActivo}
+            flowDescriptor={form.flowDescriptor}
+            onFlowDescriptorChange={(value) => setField("flowDescriptor", value)}
+            imageRegistryUri={form.imageRegistryUri}
+            onImageRegistryUriChange={(value) =>
+              setField("imageRegistryUri", value)
             }
-            className={`${FIELD_CLASS} font-mono text-xs`}
+            manifestJson={form.manifestJson}
+            onManifestJsonChange={(value) => setField("manifestJson", value)}
+            disabled={isAuditing}
+            onSyntaxError={showSyntaxToast}
           />
-          <p className="text-[11px] leading-relaxed text-neutral-600">
-            El sandbox analiza este JSON: declarar acceso a red, filesystem o
-            código dinámico aumenta la superficie de riesgo y puede provocar el
-            rechazo del activo.
+        ) : (
+          <p className="rounded-lg border border-dashed border-zinc-800/80 px-4 py-6 text-center text-sm text-neutral-600">
+            Selecciona un tipo de activo arriba para mostrar la configuración
+            técnica.
           </p>
+        )}
+
+        {toast && (
+          <PublishToast message={toast.message} variant={toast.variant} />
+        )}
+
+        <div className="border-t border-neutral-800/60 pt-5">
+          <p className="mb-4 font-mono text-[10px] uppercase tracking-widest text-neutral-500">
+            Metadatos del catálogo
+          </p>
+
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <label htmlFor="pub-nombre" className={LABEL_CLASS}>
+                Nombre del activo
+              </label>
+              <input
+                id="pub-nombre"
+                value={form.nombre}
+                disabled={isAuditing}
+                onChange={(event) => setField("nombre", event.target.value)}
+                placeholder="Ej. Sentinel Runtime Guard"
+                className={FIELD_CLASS}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="pub-desc" className={LABEL_CLASS}>
+                Descripción comercial
+              </label>
+              <textarea
+                id="pub-desc"
+                rows={2}
+                value={form.descripcion}
+                disabled={isAuditing}
+                onChange={(event) => setField("descripcion", event.target.value)}
+                placeholder="Qué hace el agente y para qué casos de uso está pensado."
+                className={`${FIELD_CLASS} resize-y`}
+              />
+            </div>
+
+            <div className="space-y-1.5">
+              <label htmlFor="pub-estudio" className={LABEL_CLASS}>
+                Nombre del estudio / firma comercial
+              </label>
+              <input
+                id="pub-estudio"
+                value={form.estudioComercial}
+                disabled={isAuditing}
+                onChange={(event) =>
+                  setField("estudioComercial", event.target.value)
+                }
+                placeholder='Ej. "JG Labs" o "Certia Studio"'
+                className={FIELD_CLASS}
+              />
+              <p className="text-[11px] text-neutral-600">
+                Aparece en la tarjeta del marketplace como «por [estudio]». Si lo
+                dejas vacío, se usará el nombre de tu cuenta.
+              </p>
+            </div>
+
+            <label className="flex cursor-pointer items-start gap-3 rounded-lg border border-neutral-800/60 bg-neutral-950/40 px-3 py-3">
+              <input
+                type="checkbox"
+                checked={form.admiteAdaptacion}
+                disabled={isAuditing}
+                onChange={(event) =>
+                  setField("admiteAdaptacion", event.target.checked)
+                }
+                className="mt-0.5 h-4 w-4 rounded border-neutral-600 bg-neutral-900 text-emerald-500 focus:ring-emerald-500/40"
+              />
+              <span className="text-sm leading-relaxed text-neutral-400">
+                Ofrecer{" "}
+                <strong className="font-medium text-neutral-200">
+                  servicios de adaptación
+                </strong>{" "}
+                para este activo (visible en todo el marketplace).
+              </span>
+            </label>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label htmlFor="pub-version" className={LABEL_CLASS}>
+                  Versión
+                </label>
+                <input
+                  id="pub-version"
+                  value={form.version}
+                  disabled={isAuditing}
+                  onChange={(event) => setField("version", event.target.value)}
+                  placeholder="1.0.0"
+                  className={FIELD_CLASS}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label htmlFor="pub-precio" className={LABEL_CLASS}>
+                  Precio (EUR)
+                </label>
+                <input
+                  id="pub-precio"
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={form.precioEur}
+                  disabled={isAuditing}
+                  onChange={(event) => setField("precioEur", event.target.value)}
+                  className={FIELD_CLASS}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {error && (
@@ -455,7 +626,7 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
 
         <button
           type="submit"
-          disabled={isAuditing}
+          disabled={isAuditing || !tipoResolved}
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-neutral-100 px-5 py-3 text-sm font-medium text-neutral-900 transition hover:bg-white disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
         >
           {isAuditing ? (
@@ -476,6 +647,15 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
       </form>
 
       {result && <AuditResultPanel result={result} />}
+
+      {result?.resultadoGlobal && (
+        <PostAuditCatalogPanel
+          agenteId={result.agenteId}
+          agenteNombre={result.nombre}
+          initialAdmiteAdaptacion={form.admiteAdaptacion}
+          onSaved={() => router.refresh()}
+        />
+      )}
     </div>
   );
 }

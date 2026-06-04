@@ -100,6 +100,8 @@ export interface Agente {
   estado_auditoria: EstadoAuditoria;
   hash_integridad: string | null;
   firma_digital: string | null;
+  guia_despliegue: string | null;
+  admite_adaptacion: boolean;
   created_at: string;
 }
 

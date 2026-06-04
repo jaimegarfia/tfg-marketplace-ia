@@ -26,10 +26,15 @@ import {
   type SubmitVersionInput,
 } from "@/lib/developer-asset";
 import {
+  saveDeveloperCatalogDetails,
+  validateCatalogDetailsInput,
+} from "@/lib/developer-catalog-details";
+import {
   publishDeveloperAsset,
   validatePublishInput,
   type PublishAssetResult,
 } from "@/lib/developer-publish";
+import type { AssetVisualIconId } from "@/lib/asset-visual-icons";
 import type {
   CategoriaAgente,
   EstadoProcesoFineTuning,
@@ -83,6 +88,15 @@ export interface PublishAssetActionInput {
   categoria: CategoriaAgente;
   descripcion: string;
   descriptorTecnico: string;
+  imagenUrl: string;
+  estudioComercial?: string | null;
+  admiteAdaptacion: boolean;
+}
+
+export interface SaveCatalogDetailsActionInput {
+  agenteId: string;
+  guiaDespliegue: string;
+  admiteAdaptacion: boolean;
 }
 
 export async function publishAssetAction(
@@ -103,6 +117,9 @@ export async function publishAssetAction(
     categoria: input.categoria,
     descripcion: input.descripcion,
     descriptorTecnico: input.descriptorTecnico,
+    imagenUrl: input.imagenUrl,
+    estudioComercial: input.estudioComercial,
+    admiteAdaptacion: input.admiteAdaptacion,
   });
 
   if (!validation.ok) {
@@ -119,13 +136,57 @@ export async function publishAssetAction(
       categoria: input.categoria,
       descripcion: input.descripcion,
       descriptorTecnico: input.descriptorTecnico,
+      imagenUrl: input.imagenUrl as AssetVisualIconId,
+      estudioComercial: input.estudioComercial,
+      admiteAdaptacion: input.admiteAdaptacion,
     });
 
     revalidatePath("/developer/dashboard");
+    revalidatePath("/");
     return { ok: true, result };
   } catch (error) {
     const detail =
       error instanceof Error ? error.message : "Error desconocido al publicar.";
+    return { ok: false, error: detail };
+  }
+}
+
+export async function saveAssetCatalogDetailsAction(
+  input: SaveCatalogDetailsActionInput,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) {
+    return session;
+  }
+
+  const validation = validateCatalogDetailsInput({
+    guiaDespliegue: input.guiaDespliegue,
+    admiteAdaptacion: input.admiteAdaptacion,
+  });
+  if (!validation.ok) {
+    return validation;
+  }
+
+  try {
+    const updated = await saveDeveloperCatalogDetails({
+      developerId: session.developer.id,
+      agenteId: input.agenteId,
+      guiaDespliegue: input.guiaDespliegue,
+      admiteAdaptacion: input.admiteAdaptacion,
+    });
+    if (!updated) {
+      return {
+        ok: false,
+        error:
+          "No se encontró el activo certificado o no tienes permiso para editarlo.",
+      };
+    }
+    revalidatePath("/developer/dashboard");
+    revalidatePath("/");
+    return { ok: true };
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error al guardar la guía.";
     return { ok: false, error: detail };
   }
 }
