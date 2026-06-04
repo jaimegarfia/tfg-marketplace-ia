@@ -60,7 +60,9 @@ async function resolveOrCreateTransaccion(
     `
       SELECT id::text AS id
       FROM transacciones
-      WHERE empresa_id = $1::uuid AND agente_id = $2::uuid
+      WHERE empresa_id = $1::uuid
+        AND agente_id = $2::uuid
+        AND estado_pago = 'completado'
       ORDER BY created_at DESC
       LIMIT 1
     `,

@@ -408,10 +408,17 @@ export async function submitDeveloperAssetVersion(
   const agent = existing[0];
   if (!agent) return null;
 
-  const engine = await runSimulatedAuditEngine({
-    assetName: agent.nombre,
-    assetDescriptor: input.descriptorTecnico,
-  });
+  let engine: Awaited<ReturnType<typeof runSimulatedAuditEngine>>;
+  try {
+    engine = await runSimulatedAuditEngine({
+      assetName: agent.nombre,
+      assetDescriptor: input.descriptorTecnico,
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error desconocido en sandbox.";
+    throw new Error(`La auditoría en contenedor falló: ${detail}`);
+  }
 
   const estadoAuditoria: EstadoAuditoria = engine.resultado_global
     ? "certificado"
@@ -421,49 +428,55 @@ export async function submitDeveloperAssetVersion(
     ? `sig_ed25519_${agent.nombre.toLowerCase().replace(/[^a-z0-9]+/g, "_").slice(0, 24)}`
     : null;
 
-  await withTransaction(async (client) => {
-    await client.query(
-      `
-        UPDATE agentes
-        SET
-          version = $3,
-          estado_auditoria = $4,
-          hash_integridad = $5,
-          firma_digital = $6
-        WHERE id = $1::uuid AND desarrollador_id = $2::uuid
-      `,
-      [
-        agenteId,
-        developerId,
-        input.version.trim(),
-        estadoAuditoria,
-        engine.hash_integridad,
-        firmaDigital,
-      ],
-    );
+  try {
+    await withTransaction(async (client) => {
+      await client.query(
+        `
+          UPDATE agentes
+          SET
+            version = $3,
+            estado_auditoria = $4,
+            hash_integridad = $5,
+            firma_digital = $6
+          WHERE id = $1::uuid AND desarrollador_id = $2::uuid
+        `,
+        [
+          agenteId,
+          developerId,
+          input.version.trim(),
+          estadoAuditoria,
+          engine.hash_integridad,
+          firmaDigital,
+        ],
+      );
 
-    await client.query(
-      `
-        INSERT INTO auditorias (
-          agente_id,
-          resultado_global,
-          logs_sandbox,
-          vulnerabilidades_detectadas,
-          permisos_aprobados,
-          fecha_ejecucion
-        )
-        VALUES ($1::uuid, $2, $3, $4, $5::jsonb, $6)
-      `,
-      [
-        agenteId,
-        engine.resultado_global,
-        engine.logs_sandbox,
-        engine.vulnerabilidades_detectadas,
-        JSON.stringify(engine.permisos_aprobados),
-        fechaEjecucion,
-      ],
-    );
-  });
+      await client.query(
+        `
+          INSERT INTO auditorias (
+            agente_id,
+            resultado_global,
+            logs_sandbox,
+            vulnerabilidades_detectadas,
+            permisos_aprobados,
+            fecha_ejecucion
+          )
+          VALUES ($1::uuid, $2, $3, $4, $5::jsonb, $6)
+        `,
+        [
+          agenteId,
+          engine.resultado_global,
+          engine.logs_sandbox,
+          engine.vulnerabilidades_detectadas,
+          JSON.stringify(engine.permisos_aprobados),
+          fechaEjecucion,
+        ],
+      );
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error desconocido en base de datos.";
+    throw new Error(`No se pudo persistir la versión en Neon: ${detail}`);
+  }
 
   return {
     estadoAuditoria,

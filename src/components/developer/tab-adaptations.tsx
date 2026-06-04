@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import type { FineTuningRequestRow } from "@/lib/developer-dashboard";
 import type { EstadoProcesoFineTuning } from "@/types/database";
@@ -35,9 +36,14 @@ function formatDate(iso: string): string {
 }
 
 export function TabAdaptations({ requests }: TabAdaptationsProps) {
+  const router = useRouter();
   const [items, setItems] = useState(requests);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setItems(requests);
+  }, [requests]);
 
   const handleEstadoChange = (
     servicioId: string,
@@ -56,7 +62,9 @@ export function TabAdaptations({ requests }: TabAdaptationsProps) {
       if (!result.ok) {
         setItems(previous);
         setError(result.error);
+        return;
       }
+      router.refresh();
     });
   };
 

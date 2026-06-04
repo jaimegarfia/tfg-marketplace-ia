@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { getSessionFromCookies } from "@/lib/auth/session";
 import { createFineTuningRequest } from "@/lib/fine-tuning-service";
 
 export const runtime = "nodejs";
@@ -6,8 +7,6 @@ export const runtime = "nodejs";
 interface FineTuningPayload {
   agenteId: string;
   contextoPrivadoDesc: string;
-  userEmail: string;
-  userName: string;
 }
 
 function parsePayload(body: unknown): FineTuningPayload {
@@ -18,8 +17,6 @@ function parsePayload(body: unknown): FineTuningPayload {
   const data = body as Record<string, unknown>;
   const agenteId = String(data.agenteId ?? "").trim();
   const contextoPrivadoDesc = String(data.contextoPrivadoDesc ?? "").trim();
-  const userEmail = String(data.userEmail ?? "").trim();
-  const userName = String(data.userName ?? "").trim();
 
   if (!agenteId) {
     throw new Error("Falta el identificador del agente.");
@@ -27,23 +24,32 @@ function parsePayload(body: unknown): FineTuningPayload {
   if (!contextoPrivadoDesc) {
     throw new Error("La descripción del contexto privado es obligatoria.");
   }
-  if (!userEmail) {
-    throw new Error("Se requiere un email de usuario autenticado.");
-  }
 
   return {
     agenteId,
     contextoPrivadoDesc,
-    userEmail,
-    userName: userName || userEmail.split("@")[0] || "Usuario",
   };
 }
 
 export async function POST(request: Request) {
   try {
+    const session = await getSessionFromCookies();
+    if (!session) {
+      return NextResponse.json(
+        { ok: false, error: "Debes iniciar sesión para solicitar una adaptación." },
+        { status: 401 },
+      );
+    }
+
     const body: unknown = await request.json();
     const payload = parsePayload(body);
-    const result = await createFineTuningRequest(payload);
+
+    const result = await createFineTuningRequest({
+      agenteId: payload.agenteId,
+      contextoPrivadoDesc: payload.contextoPrivadoDesc,
+      userEmail: session.email,
+      userName: session.nombre,
+    });
 
     return NextResponse.json({
       ok: true,
@@ -54,9 +60,14 @@ export async function POST(request: Request) {
   } catch (error) {
     const detail =
       error instanceof Error ? error.message : "Error desconocido.";
+    const isValidation =
+      error instanceof Error &&
+      (detail.includes("mínimo") ||
+        detail.includes("obligator") ||
+        detail.includes("Falta"));
     return NextResponse.json(
       { ok: false, error: detail },
-      { status: error instanceof Error && detail.includes("mínimo") ? 400 : 500 },
+      { status: isValidation ? 400 : 500 },
     );
   }
 }

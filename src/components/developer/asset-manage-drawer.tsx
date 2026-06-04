@@ -28,7 +28,7 @@ import {
 } from "@/app/developer/dashboard/actions";
 import {
   CertificationOverlay,
-  runCertificationPhases,
+  runCertificationPhasesDuring,
 } from "@/components/developer/certification-overlay";
 
 type ManageTab = "ficha" | "version" | "valoraciones" | "auditorias";
@@ -179,12 +179,21 @@ export function AssetManageDrawer({
     setPhaseIndex(0);
 
     try {
-      await runCertificationPhases(setPhaseIndex);
+      let result:
+        | Awaited<ReturnType<typeof submitAssetVersionAction>>
+        | undefined;
 
-      const result = await submitAssetVersionAction(agenteId, {
-        version: newVersion,
-        descriptorTecnico: descriptor,
+      await runCertificationPhasesDuring(setPhaseIndex, async () => {
+        result = await submitAssetVersionAction(agenteId, {
+          version: newVersion,
+          descriptorTecnico: descriptor,
+        });
       });
+
+      if (!result) {
+        setError("No se recibió respuesta al certificar la versión.");
+        return;
+      }
 
       if (!result.ok) {
         setError(result.error);
@@ -199,6 +208,12 @@ export function AssetManageDrawer({
       await loadDetail();
       onUpdated();
       setActiveTab("auditorias");
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Error inesperado durante la auditoría.",
+      );
     } finally {
       setIsAuditing(false);
     }

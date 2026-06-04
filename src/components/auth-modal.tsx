@@ -205,7 +205,7 @@ export function AuthModal() {
         role="dialog"
         aria-modal="true"
         aria-label="Autenticación"
-        className="relative flex max-h-[min(92dvh,100%)] w-full max-w-xl flex-col overflow-hidden rounded-t-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 sm:max-h-[min(88dvh,680px)] sm:rounded-2xl"
+        className="relative flex max-h-[min(92dvh,100%)] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl border border-zinc-800 bg-zinc-950 shadow-2xl shadow-black/60 sm:max-h-[min(90dvh,720px)] sm:rounded-2xl"
       >
         {/* Cabecera fija */}
         <div className="shrink-0 border-b border-zinc-800/80 px-4 pb-3 pt-4 sm:px-5">
@@ -285,18 +285,14 @@ export function AuthModal() {
         >
           {/* Cuerpo con scroll */}
           <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-5">
-            <div className="space-y-3">
+            <div className="space-y-4">
               {isSignUp && (
-                <div
-                  className={
-                    !isDeveloperMode
-                      ? "grid grid-cols-1 gap-3 sm:grid-cols-2"
-                      : "space-y-3"
-                  }
-                >
-                  <div className="space-y-1">
+                <>
+                  <div className="space-y-1.5">
                     <label htmlFor="auth-full-name" className={labelClassName}>
-                      {isDeveloperMode ? "Estudio" : "Nombre"}
+                      {isDeveloperMode
+                        ? "Nombre del estudio"
+                        : "Nombre completo"}
                     </label>
                     <input
                       id="auth-full-name"
@@ -311,12 +307,12 @@ export function AuthModal() {
                   </div>
 
                   {!isDeveloperMode && (
-                    <div className="space-y-1">
+                    <div className="space-y-1.5">
                       <label
                         htmlFor="auth-company-name"
                         className={labelClassName}
                       >
-                        Empresa
+                        Empresa (opcional)
                       </label>
                       <input
                         id="auth-company-name"
@@ -325,46 +321,44 @@ export function AuthModal() {
                         onChange={(event) =>
                           setCompanyName(event.target.value)
                         }
-                        placeholder="Opcional"
+                        placeholder="ComplianceHub EU"
                         className={inputClassName}
                       />
                     </div>
                   )}
-                </div>
+                </>
               )}
 
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <label htmlFor="auth-email" className={labelClassName}>
-                    Correo
-                  </label>
-                  <input
-                    id="auth-email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    autoComplete="email"
-                    placeholder="usuario@empresa.com"
-                    className={inputClassName}
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label htmlFor="auth-email" className={labelClassName}>
+                  Correo electrónico
+                </label>
+                <input
+                  id="auth-email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                  placeholder="usuario@empresa.com"
+                  className={inputClassName}
+                />
+              </div>
 
-                <div className="space-y-1">
-                  <label htmlFor="auth-password" className={labelClassName}>
-                    Contraseña
-                  </label>
-                  <input
-                    id="auth-password"
-                    type="password"
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    autoComplete={
-                      isSignUp ? "new-password" : "current-password"
-                    }
-                    placeholder={isSignUp ? "Ej. Certia2026" : "Tu contraseña"}
-                    className={inputClassName}
-                  />
-                </div>
+              <div className="space-y-1.5">
+                <label htmlFor="auth-password" className={labelClassName}>
+                  Contraseña
+                </label>
+                <input
+                  id="auth-password"
+                  type="password"
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
+                  autoComplete={
+                    isSignUp ? "new-password" : "current-password"
+                  }
+                  placeholder={isSignUp ? "Ej. Certia2026" : "Tu contraseña"}
+                  className={inputClassName}
+                />
               </div>
 
               {isSignUp && (
@@ -420,28 +414,28 @@ export function AuthModal() {
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col gap-2">
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleOAuthSignIn("google")}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-[#747775] bg-white px-3 text-[13px] font-medium text-[#1f1f1f] transition hover:bg-[#f8f9fa] disabled:opacity-60"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-[#747775] bg-white px-4 text-[13px] font-medium text-[#1f1f1f] transition hover:bg-[#f8f9fa] disabled:opacity-60"
                 style={{ fontFamily: "Roboto, Arial, sans-serif" }}
                 aria-label="Continuar con Google"
               >
                 <GoogleBrandIcon />
-                <span className="truncate">Continuar con Google</span>
+                Continuar con Google
               </button>
 
               <button
                 type="button"
                 disabled={isSubmitting}
                 onClick={() => handleOAuthSignIn("apple")}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-white/15 bg-black px-3 text-[13px] font-medium text-white transition hover:bg-zinc-900 disabled:opacity-60"
+                className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg border border-white/15 bg-black px-4 text-[13px] font-medium text-white transition hover:bg-zinc-900 disabled:opacity-60"
                 aria-label="Continuar con Apple"
               >
                 <AppleBrandIcon />
-                <span className="truncate">Continuar con Apple</span>
+                Continuar con Apple
               </button>
             </div>
 

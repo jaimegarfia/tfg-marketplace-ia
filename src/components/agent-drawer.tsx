@@ -530,11 +530,10 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
         const response = await fetch("/api/fine-tuning", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({
             agenteId: agente.id,
             contextoPrivadoDesc,
-            userEmail: user.email,
-            userName: user.name,
           }),
         });
 

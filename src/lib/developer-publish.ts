@@ -193,17 +193,26 @@ async function insertAuditoria(
 export async function publishDeveloperAsset(
   input: PublishAssetInput,
 ): Promise<PublishAssetResult> {
-  const engine = await runSimulatedAuditEngine({
-    assetName: input.nombre,
-    assetDescriptor: input.descriptorTecnico,
-  });
+  let engine: Awaited<ReturnType<typeof runSimulatedAuditEngine>>;
+  try {
+    engine = await runSimulatedAuditEngine({
+      assetName: input.nombre,
+      assetDescriptor: input.descriptorTecnico,
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error desconocido en sandbox.";
+    throw new Error(`La auditoría en contenedor falló: ${detail}`);
+  }
 
   const estadoAuditoria: EstadoAuditoria = engine.resultado_global
     ? "certificado"
     : "rechazado";
   const fechaEjecucion = new Date().toISOString();
 
-  const agenteId = await withTransaction(async (client) => {
+  let agenteId: string;
+  try {
+    agenteId = await withTransaction(async (client) => {
     const id = await insertAuditedAsset(client, input, {
       resultado_global: engine.resultado_global,
       hash_integridad: engine.hash_integridad,
@@ -222,8 +231,13 @@ export async function publishDeveloperAsset(
       fechaEjecucion,
     );
 
-    return id;
-  });
+      return id;
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error desconocido en base de datos.";
+    throw new Error(`No se pudo persistir el activo en Neon: ${detail}`);
+  }
 
   return {
     agenteId,

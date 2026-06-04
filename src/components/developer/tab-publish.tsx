@@ -21,7 +21,7 @@ import {
 import type { PublishAssetResult } from "@/lib/developer-publish";
 import {
   CertificationOverlay,
-  runCertificationPhases,
+  runCertificationPhasesDuring,
 } from "@/components/developer/certification-overlay";
 
 const DEFAULT_DESCRIPTOR = JSON.stringify(
@@ -262,9 +262,20 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
     setPhaseIndex(0);
 
     try {
-      await runCertificationPhases(setPhaseIndex);
+      let response:
+        | { ok: true; result: PublishAssetResult }
+        | { ok: false; error: string }
+        | undefined;
 
-      const response = await publishAssetAction(payload);
+      await runCertificationPhasesDuring(setPhaseIndex, async () => {
+        response = await publishAssetAction(payload);
+      });
+
+      if (!response) {
+        setError("No se recibió respuesta del servidor de publicación.");
+        return;
+      }
+
       if (!response.ok) {
         setError(response.error);
         return;
@@ -277,6 +288,12 @@ export function TabPublish({ onPublished }: { onPublished: () => void }) {
       }));
       router.refresh();
       onPublished();
+    } catch (cause) {
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "Error inesperado durante la auditoría.",
+      );
     } finally {
       setIsAuditing(false);
     }

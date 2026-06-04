@@ -144,19 +144,19 @@ async function getDeveloperMetrics(
     `
       SELECT
         COALESCE((
-          SELECT SUM(a.precio_eur)
+          SELECT SUM(a.precio_eur::numeric)
           FROM transacciones t
           INNER JOIN agentes a ON a.id = t.agente_id
           WHERE a.desarrollador_id = $1::uuid
             AND t.estado_pago = 'completado'
-        ), 0) AS ingresos_totales,
+        ), 0)::double precision AS ingresos_totales,
         COALESCE((
           SELECT COUNT(*)::int
           FROM transacciones t
           INNER JOIN agentes a ON a.id = t.agente_id
           WHERE a.desarrollador_id = $1::uuid
             AND t.estado_pago = 'completado'
-        ), 0) AS unidades_distribuidas,
+        ), 0)::int AS unidades_distribuidas,
         COALESCE((
           SELECT COUNT(*)::int
           FROM agentes
