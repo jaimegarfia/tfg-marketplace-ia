@@ -15,6 +15,7 @@ import {
   type DeveloperDashboardData,
 } from "@/lib/developer-dashboard";
 import {
+  deleteDeveloperAsset,
   getDeveloperAssetDetail,
   submitDeveloperAssetVersion,
   updateDeveloperAsset,
@@ -290,6 +291,20 @@ export async function updateAssetAction(
       error instanceof Error ? error.message : "Error al actualizar el activo.";
     return { ok: false, error: detail };
   }
+}
+
+export async function deleteAssetAction(
+  agenteId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const session = await resolveSessionDeveloper();
+  if (!session.ok) return session;
+
+  const result = await deleteDeveloperAsset(session.developer.id, agenteId);
+  if (!result.ok) return result;
+
+  revalidatePath("/");
+  revalidatePath("/developer/dashboard");
+  return { ok: true };
 }
 
 export async function submitAssetVersionAction(

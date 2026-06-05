@@ -397,7 +397,10 @@ function DeploymentGuideTab({ agente, permisos }: DeploymentGuideTabProps) {
             </div>
 
             <div className="rounded-lg border border-neutral-800/60 bg-neutral-950/30 p-5">
-              <DeveloperGuideMarkdown content={developerGuia} />
+              <DeveloperGuideMarkdown
+                content={developerGuia}
+                className="prose prose-invert prose-sm max-w-none prose-headings:text-neutral-100 prose-p:text-zinc-300 prose-li:text-zinc-300 prose-strong:text-zinc-200 prose-a:text-emerald-400 prose-a:no-underline hover:prose-a:text-emerald-300"
+              />
             </div>
           </section>
         </div>
@@ -665,10 +668,11 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-0 sm:items-center sm:p-4">
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-overlay-in"
+      <button
+        type="button"
+        aria-label="Cerrar detalle del activo"
         onClick={onClose}
-        aria-hidden="true"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-overlay-in"
       />
 
       <div
@@ -676,128 +680,132 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
         aria-modal="true"
         aria-label={`Detalle de ${agente.nombre}`}
         className="
-          relative z-10 flex max-h-[92dvh] w-full max-w-2xl flex-col
-          rounded-t-2xl border border-neutral-800/80 bg-[#0b0d10]
-          shadow-2xl shadow-black/50
-          animate-fade-up
-          sm:max-h-[85vh] sm:rounded-2xl
+          relative z-10 flex min-h-0 w-full max-w-2xl flex-col
+          max-h-[92dvh] rounded-t-2xl border border-neutral-800/80 bg-[#0b0d10]
+          shadow-2xl shadow-black/50 animate-fade-up
+          sm:max-h-[min(85vh,calc(100vh-120px))] sm:rounded-2xl
         "
       >
-        <div className="flex items-center justify-between border-b border-neutral-800/60 px-5 py-4 sm:px-6">
+        <header className="flex shrink-0 items-center justify-between border-b border-neutral-800/60 px-5 py-4 sm:px-6">
           <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
             Detalle del activo
           </span>
           <button
+            type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="flex h-8 w-8 items-center justify-center rounded-lg
-                       text-neutral-500 transition-colors duration-200
-                       hover:bg-white/[0.04] hover:text-neutral-300"
+            className="flex h-8 w-8 items-center justify-center rounded-lg text-neutral-500 transition-colors duration-200 hover:bg-white/[0.04] hover:text-neutral-300"
           >
             <X size={16} strokeWidth={1.25} />
           </button>
-        </div>
+        </header>
 
-        <div className="drawer-scroll flex-1 overflow-y-auto">
-          <div className="space-y-5 border-b border-neutral-800/60 px-6 py-6">
-            <div className="space-y-1">
-              <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
-                {etiquetaTipoActivo(agente.tipo_activo)}
-              </p>
-              <h2 className="text-2xl font-medium tracking-tight text-neutral-100">
-                {agente.nombre}
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-4">
-              <span className="font-mono text-sm text-neutral-400">
-                v{agente.version}
-              </span>
-              <span
-                className="h-1 w-1 rounded-full bg-neutral-700"
-                aria-hidden="true"
-              />
-              <span className="text-lg font-medium tracking-tight text-neutral-100">
-                {formatearPrecio(agente.precio_eur)}
-              </span>
-            </div>
-
-            <div
-              className={`inline-flex items-center gap-2 text-sm ${visual.text}`}
-            >
-              <AuditIcon size={14} strokeWidth={1.25} aria-hidden="true" />
-              <span className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} />
-              {visual.label}
-            </div>
-
-            <p className="text-sm leading-relaxed text-neutral-400">
-              {agente.descripcion}
+        <div className="shrink-0 space-y-5 border-b border-neutral-800/60 px-6 py-6">
+          <div className="space-y-1">
+            <p className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+              {etiquetaTipoActivo(agente.tipo_activo)}
             </p>
-
-            {agente.admite_adaptacion ? (
-              <span className="inline-flex rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300/90">
-                Adaptación disponible
-              </span>
-            ) : (
-              <span className="inline-flex rounded-md border border-neutral-700/80 bg-neutral-900/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
-                Sin servicio de adaptación
-              </span>
-            )}
+            <h2 className="text-2xl font-medium tracking-tight text-neutral-100">
+              {agente.nombre}
+            </h2>
           </div>
 
-          <DrawerTabBar activeTab={activeTab} onTabChange={setActiveTab} />
-
-          <div className="px-6 py-6">
-            {activeTab === "inspeccion" && (
-              <div
-                role="tabpanel"
-                id="drawer-panel-inspeccion"
-                aria-labelledby="drawer-tab-inspeccion"
-              >
-                <TechnicalInspectionTab
-                  agente={agente}
-                  logs={logs}
-                  permisos={permisosEstructurados}
-                  vulns={vulns}
-                  vulnCount={vulnCount}
-                  integrityHash={integrityHash}
-                />
-              </div>
-            )}
-
-            {activeTab === "despliegue" && (
-              <div
-                role="tabpanel"
-                id="drawer-panel-despliegue"
-                aria-labelledby="drawer-tab-despliegue"
-              >
-                <DeploymentGuideTab
-                  agente={agente}
-                  permisos={permisosEstructurados}
-                />
-              </div>
-            )}
-
-            {activeTab === "adaptacion" && (
-              <div
-                role="tabpanel"
-                id="drawer-panel-adaptacion"
-                aria-labelledby="drawer-tab-adaptacion"
-              >
-                <AdaptationServicesTab
-                  admiteAdaptacion={agente.admite_adaptacion}
-                  isSubmitting={isSubmitting}
-                  contextoPrivadoDesc={contextoPrivadoDesc}
-                  onContextoChange={setContextoPrivadoDesc}
-                  onSubmit={handleAdaptationSubmit}
-                  formError={formError}
-                />
-              </div>
-            )}
+          <div className="flex items-center gap-4">
+            <span className="font-mono text-sm text-neutral-400">
+              v{agente.version}
+            </span>
+            <span
+              className="h-1 w-1 rounded-full bg-neutral-700"
+              aria-hidden="true"
+            />
+            <span className="text-lg font-medium tracking-tight text-neutral-100">
+              {formatearPrecio(agente.precio_eur)}
+            </span>
           </div>
+
+          <div
+            className={`inline-flex items-center gap-2 text-sm ${visual.text}`}
+          >
+            <AuditIcon size={14} strokeWidth={1.25} aria-hidden="true" />
+            <span className={`h-1.5 w-1.5 rounded-full ${visual.dot}`} />
+            {visual.label}
+          </div>
+
+          <p className="text-sm leading-relaxed text-neutral-400">
+            {agente.descripcion}
+          </p>
+
+          {agente.admite_adaptacion ? (
+            <span className="inline-flex rounded-md border border-emerald-500/20 bg-emerald-500/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-300/90">
+              Adaptación disponible
+            </span>
+          ) : (
+            <span className="inline-flex rounded-md border border-neutral-700/80 bg-neutral-900/60 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-neutral-500">
+              Sin servicio de adaptación
+            </span>
+          )}
         </div>
 
-        <div className="border-t border-neutral-800/60 px-6 py-5">
+        <div className="shrink-0">
+          <DrawerTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+        </div>
+
+        <div
+          className="drawer-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-6 py-6"
+          aria-label="Contenido de la pestaña activa"
+        >
+          {activeTab === "inspeccion" && (
+            <div
+              role="tabpanel"
+              id="drawer-panel-inspeccion"
+              aria-labelledby="drawer-tab-inspeccion"
+              tabIndex={0}
+            >
+              <TechnicalInspectionTab
+                agente={agente}
+                logs={logs}
+                permisos={permisosEstructurados}
+                vulns={vulns}
+                vulnCount={vulnCount}
+                integrityHash={integrityHash}
+              />
+            </div>
+          )}
+
+          {activeTab === "despliegue" && (
+            <div
+              role="tabpanel"
+              id="drawer-panel-despliegue"
+              aria-labelledby="drawer-tab-despliegue"
+              tabIndex={0}
+            >
+              <DeploymentGuideTab
+                agente={agente}
+                permisos={permisosEstructurados}
+              />
+            </div>
+          )}
+
+          {activeTab === "adaptacion" && (
+            <div
+              role="tabpanel"
+              id="drawer-panel-adaptacion"
+              aria-labelledby="drawer-tab-adaptacion"
+              tabIndex={0}
+            >
+              <AdaptationServicesTab
+                admiteAdaptacion={agente.admite_adaptacion}
+                isSubmitting={isSubmitting}
+                contextoPrivadoDesc={contextoPrivadoDesc}
+                onContextoChange={setContextoPrivadoDesc}
+                onSubmit={handleAdaptationSubmit}
+                formError={formError}
+              />
+            </div>
+          )}
+        </div>
+
+        <footer className="shrink-0 border-t border-neutral-800/60 bg-[#0b0d10] px-6 py-5">
           <button
             type="button"
             onClick={handleAcquire}
@@ -838,7 +846,7 @@ export function AgentDrawer({ agente, onClose }: AgentDrawerProps) {
               {toastMessage}
             </p>
           )}
-        </div>
+        </footer>
       </div>
     </div>
   );

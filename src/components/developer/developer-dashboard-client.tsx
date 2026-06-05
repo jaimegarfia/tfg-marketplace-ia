@@ -69,6 +69,10 @@ export function DeveloperDashboardClient({ data }: DeveloperDashboardClientProps
           onUpdated={() => {
             router.refresh();
           }}
+          onDeleted={() => {
+            setManageAgentId(null);
+            router.refresh();
+          }}
         />
       )}
     </MarketplaceShell>

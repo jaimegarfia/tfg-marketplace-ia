@@ -39,18 +39,38 @@ function splitMarkdownSegments(source: string): MarkdownSegment[] {
 
 function renderInline(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
-  const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
+  const pattern =
+    /(\[[^\]]+\]\([^)]+\)|`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g;
   let last = 0;
   let match: RegExpExecArray | null;
   let index = 0;
 
   while ((match = pattern.exec(text)) !== null) {
     if (match.index > last) {
-      nodes.push(text.slice(last, match.index));
+      nodes.push(
+        <span key={`${keyPrefix}-text-${index}`} className="text-zinc-300">
+          {text.slice(last, match.index)}
+        </span>,
+      );
     }
 
     const token = match[0];
-    if (token.startsWith("`")) {
+    if (token.startsWith("[")) {
+      const linkMatch = token.match(/^\[([^\]]+)\]\(([^)]+)\)$/);
+      const label = linkMatch?.[1] ?? token;
+      const href = linkMatch?.[2] ?? "#";
+      nodes.push(
+        <a
+          key={`${keyPrefix}-link-${index}`}
+          href={href}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="font-medium text-emerald-400 underline decoration-emerald-400/30 underline-offset-2 transition hover:text-emerald-300"
+        >
+          {label}
+        </a>,
+      );
+    } else if (token.startsWith("`")) {
       nodes.push(
         <code
           key={`${keyPrefix}-code-${index}`}
@@ -63,14 +83,14 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
       nodes.push(
         <strong
           key={`${keyPrefix}-bold-${index}`}
-          className="font-medium text-neutral-200"
+          className="font-semibold text-zinc-200"
         >
           {token.slice(2, -2)}
         </strong>,
       );
     } else {
       nodes.push(
-        <em key={`${keyPrefix}-em-${index}`} className="text-neutral-300">
+        <em key={`${keyPrefix}-em-${index}`} className="text-zinc-300">
           {token.slice(1, -1)}
         </em>,
       );
@@ -81,7 +101,11 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   }
 
   if (last < text.length) {
-    nodes.push(text.slice(last));
+    nodes.push(
+      <span key={`${keyPrefix}-tail`} className="text-zinc-300">
+        {text.slice(last)}
+      </span>,
+    );
   }
 
   return nodes.length > 0 ? nodes : [text];
@@ -120,7 +144,7 @@ function renderTextBlock(content: string): ReactNode {
           ? "text-base font-semibold text-neutral-100"
           : level === 2
             ? "text-sm font-semibold text-neutral-100"
-            : "text-sm font-medium text-neutral-200";
+            : "text-sm font-medium text-zinc-200";
       pushBlock(
         <h4 className={`${className} mb-1`}>
           {renderInline(title, `h-${lineIndex}`)}
@@ -140,9 +164,9 @@ function renderTextBlock(content: string): ReactNode {
         lineIndex += 1;
       }
       pushBlock(
-        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-400">
+        <ul className="list-disc space-y-1.5 pl-5 text-sm leading-relaxed marker:text-zinc-500">
           {items.map((item, itemIndex) => (
-            <li key={`li-${lineIndex}-${itemIndex}`}>
+            <li key={`li-${lineIndex}-${itemIndex}`} className="text-zinc-300">
               {renderInline(item, `li-${lineIndex}-${itemIndex}`)}
             </li>
           ))}
@@ -161,9 +185,9 @@ function renderTextBlock(content: string): ReactNode {
         lineIndex += 1;
       }
       pushBlock(
-        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-zinc-400">
+        <ol className="list-decimal space-y-1.5 pl-5 text-sm leading-relaxed marker:text-zinc-500">
           {items.map((item, itemIndex) => (
-            <li key={`ol-${lineIndex}-${itemIndex}`}>
+            <li key={`ol-${lineIndex}-${itemIndex}`} className="text-zinc-300">
               {renderInline(item, `ol-${lineIndex}-${itemIndex}`)}
             </li>
           ))}
@@ -189,7 +213,7 @@ function renderTextBlock(content: string): ReactNode {
     }
 
     pushBlock(
-      <p className="text-sm leading-relaxed text-zinc-400">
+      <p className="text-sm leading-relaxed text-zinc-300">
         {renderInline(paragraphLines.join(" "), `p-${lineIndex}`)}
       </p>,
     );
@@ -206,16 +230,20 @@ function shouldShowCodeLanguage(language: string | undefined): boolean {
 
 interface DeveloperGuideMarkdownProps {
   content: string;
+  className?: string;
 }
 
-export function DeveloperGuideMarkdown({ content }: DeveloperGuideMarkdownProps) {
+export function DeveloperGuideMarkdown({
+  content,
+  className = "prose prose-invert prose-sm max-w-none",
+}: DeveloperGuideMarkdownProps) {
   const segments = splitMarkdownSegments(content);
 
   return (
-    <div className="max-w-none space-y-6 text-sm text-zinc-400">
+    <div className={`${className} space-y-6`}>
       {segments.map((segment, index) =>
         segment.kind === "code" ? (
-          <div key={`code-${index}`} className="space-y-2 pt-1">
+          <div key={`code-${index}`} className="not-prose space-y-2 pt-1">
             {shouldShowCodeLanguage(segment.language) && (
               <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
                 {segment.language}

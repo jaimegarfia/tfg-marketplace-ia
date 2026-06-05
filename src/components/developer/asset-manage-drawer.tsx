@@ -15,9 +15,11 @@ import {
 import { AuditBadge } from "@/components/audit-badge";
 import { AssetVisualThumbnail } from "@/components/developer/asset-visual-thumbnail";
 import {
+  deleteAssetAction,
   getAssetDetailAction,
   updateAssetAction,
 } from "@/app/developer/dashboard/actions";
+import { AssetDeleteConfirmModal } from "@/components/developer/asset-delete-confirm-modal";
 import { AssetVersionTab } from "@/components/developer/asset-version-tab";
 
 type ManageTab = "ficha" | "version" | "valoraciones" | "auditorias";
@@ -65,12 +67,14 @@ interface AssetManageDrawerProps {
   agenteId: string;
   onClose: () => void;
   onUpdated: () => void;
+  onDeleted?: () => void;
 }
 
 export function AssetManageDrawer({
   agenteId,
   onClose,
   onUpdated,
+  onDeleted,
 }: AssetManageDrawerProps) {
   const [activeTab, setActiveTab] = useState<ManageTab>("ficha");
   const [detail, setDetail] = useState<DeveloperAssetDetail | null>(null);
@@ -78,6 +82,9 @@ export function AssetManageDrawer({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   const [descripcion, setDescripcion] = useState("");
@@ -138,6 +145,19 @@ export function AssetManageDrawer({
     setSuccess("Cambios guardados correctamente.");
     await loadDetail();
     onUpdated();
+  };
+
+  const handleDeleteConfirm = async () => {
+    setDeleteError(null);
+    setIsDeleting(true);
+    const result = await deleteAssetAction(agenteId);
+    if (!result.ok) {
+      setDeleteError(result.error);
+      setIsDeleting(false);
+      return;
+    }
+    setDeleteModalOpen(false);
+    onDeleted?.();
   };
 
   if (!mounted) {
@@ -434,6 +454,31 @@ export function AssetManageDrawer({
                     <PencilLine size={14} strokeWidth={1.5} aria-hidden="true" />
                     {isSaving ? "Guardando..." : "Guardar cambios"}
                   </button>
+
+                  <div className="mt-10 border-t border-neutral-800/60 pt-6">
+                    {detail.ventas_count > 0 ? (
+                      <p className="text-xs leading-relaxed text-neutral-500">
+                        Este activo no puede eliminarse porque tiene ventas o
+                        solicitudes de adaptación asociadas.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <p className="text-xs text-neutral-500">
+                          Retira el activo del catálogo y del marketplace.
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setDeleteError(null);
+                            setDeleteModalOpen(true);
+                          }}
+                          className="shrink-0 self-start rounded-lg border border-neutral-800/80 px-3 py-1.5 text-xs text-neutral-400 transition hover:border-neutral-700 hover:bg-neutral-900/50 hover:text-neutral-200 sm:self-auto"
+                        >
+                          Eliminar activo
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </form>
               )}
 
@@ -571,5 +616,24 @@ export function AssetManageDrawer({
     </div>
   );
 
-  return createPortal(panel, document.body);
+  return createPortal(
+    <>
+      {panel}
+      {deleteModalOpen && detail && (
+        <AssetDeleteConfirmModal
+          assetName={detail.nombre}
+          assetVersion={detail.version}
+          isDeleting={isDeleting}
+          error={deleteError}
+          onClose={() => {
+            if (isDeleting) return;
+            setDeleteModalOpen(false);
+            setDeleteError(null);
+          }}
+          onConfirm={() => void handleDeleteConfirm()}
+        />
+      )}
+    </>,
+    document.body,
+  );
 }

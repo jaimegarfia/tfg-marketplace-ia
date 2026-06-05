@@ -1,5 +1,4 @@
-import { query } from "@/lib/db";
-import { withTransaction } from "@/lib/db";
+import { query, queryOptionalInTransaction, withTransaction } from "@/lib/db";
 import { runAuditEngine } from "@/lib/audit-engine";
 import { validateVersionIncrement } from "@/lib/version-utils";
 import type {
@@ -636,4 +635,79 @@ export async function submitDeveloperAssetVersion(
     fechaEjecucion,
     failureKind: engine.failureKind,
   };
+}
+
+export async function deleteDeveloperAsset(
+  developerId: string,
+  agenteId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const rows = await query<{ ventas: number }>(
+    `
+      SELECT (
+        SELECT COUNT(*)::int
+        FROM transacciones t
+        WHERE t.agente_id = $1::uuid AND t.estado_pago = 'completado'
+      ) AS ventas
+      FROM agentes a
+      WHERE a.id = $1::uuid AND a.desarrollador_id = $2::uuid
+    `,
+    [agenteId, developerId],
+  );
+
+  if (!rows[0]) {
+    return { ok: false, error: "Activo no encontrado o sin permisos." };
+  }
+
+  if (rows[0].ventas > 0) {
+    return {
+      ok: false,
+      error:
+        "No puedes eliminar un activo con ventas o solicitudes de adaptación asociadas.",
+    };
+  }
+
+  try {
+    await withTransaction(async (client) => {
+      await queryOptionalInTransaction(
+        client,
+        "delete_fine_tuning",
+        `
+          DELETE FROM servicios_fine_tuning
+          WHERE transaccion_id IN (
+            SELECT id FROM transacciones WHERE agente_id = $1::uuid
+          )
+        `,
+        [agenteId],
+      );
+
+      await queryOptionalInTransaction(
+        client,
+        "delete_valoraciones",
+        `DELETE FROM valoraciones WHERE agente_id = $1::uuid`,
+        [agenteId],
+      );
+
+      await client.query(`DELETE FROM auditorias WHERE agente_id = $1::uuid`, [
+        agenteId,
+      ]);
+      await client.query(`DELETE FROM transacciones WHERE agente_id = $1::uuid`, [
+        agenteId,
+      ]);
+
+      const deleted = await client.query(
+        `DELETE FROM agentes WHERE id = $1::uuid AND desarrollador_id = $2::uuid RETURNING id`,
+        [agenteId, developerId],
+      );
+
+      if ((deleted.rowCount ?? 0) === 0) {
+        throw new Error("No se pudo eliminar el activo.");
+      }
+    });
+  } catch (error) {
+    const detail =
+      error instanceof Error ? error.message : "Error al eliminar el activo.";
+    return { ok: false, error: detail };
+  }
+
+  return { ok: true };
 }

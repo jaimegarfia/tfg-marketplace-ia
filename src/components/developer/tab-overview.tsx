@@ -12,7 +12,11 @@ import type {
   DeveloperAgenteRow,
   DeveloperMetrics,
 } from "@/lib/developer-dashboard";
-import { etiquetaTipoActivo, formatearPrecio } from "@/lib/catalog-format";
+import {
+  etiquetaTipoActivo,
+  formatearImporte,
+  formatearPrecio,
+} from "@/lib/catalog-format";
 import { AuditBadge } from "@/components/audit-badge";
 import { SandboxLogsModal } from "@/components/developer/sandbox-logs-modal";
 
@@ -96,7 +100,7 @@ export function TabOverview({
       <div className="grid gap-4 md:grid-cols-3">
         <MetricCard
           label="Ingresos totales (EUR)"
-          value={formatearPrecio(metrics.ingresosTotalesEur)}
+          value={formatearImporte(metrics.ingresosTotalesEur)}
           hint="Suma de transacciones completadas sobre tus agentes."
           icon={Euro}
           accent="emerald"

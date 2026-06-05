@@ -1,5 +1,5 @@
 import type { PoolClient } from "@neondatabase/serverless";
-import { query, withTransaction } from "@/lib/db";
+import { query, queryOptionalInTransaction, withTransaction } from "@/lib/db";
 import type { RolUsuario } from "@/types/database";
 
 export interface UserProfileRecord {
@@ -115,7 +115,9 @@ export async function updateUserProfile(
 }
 
 async function deleteUserData(client: PoolClient, userId: string): Promise<void> {
-  await client.query(
+  await queryOptionalInTransaction(
+    client,
+    "delete_fine_tuning",
     `
       DELETE FROM servicios_fine_tuning
       WHERE transaccion_id IN (
@@ -129,19 +131,17 @@ async function deleteUserData(client: PoolClient, userId: string): Promise<void>
     [userId],
   );
 
-  try {
-    await client.query(
-      `
-        DELETE FROM valoraciones
-        WHERE agente_id IN (
-          SELECT id FROM agentes WHERE desarrollador_id = $1::uuid
-        )
-      `,
-      [userId],
-    );
-  } catch {
-    /* tabla opcional */
-  }
+  await queryOptionalInTransaction(
+    client,
+    "delete_valoraciones",
+    `
+      DELETE FROM valoraciones
+      WHERE agente_id IN (
+        SELECT id FROM agentes WHERE desarrollador_id = $1::uuid
+      )
+    `,
+    [userId],
+  );
 
   await client.query(
     `

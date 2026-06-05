@@ -84,3 +84,25 @@ export async function withTransaction<T>(
     client.release();
   }
 }
+
+/**
+ * Ejecuta una sentencia opcional dentro de una transacción abierta.
+ * Si falla (p. ej. tabla aún no migrada), revierte al savepoint sin abortar
+ * el resto de la transacción.
+ */
+export async function queryOptionalInTransaction(
+  client: import("@neondatabase/serverless").PoolClient,
+  savepoint: string,
+  text: string,
+  params: ReadonlyArray<unknown> = [],
+): Promise<void> {
+  const sp = savepoint.replace(/[^a-zA-Z0-9_]/g, "_");
+  await client.query(`SAVEPOINT ${sp}`);
+  try {
+    await client.query(text, params as unknown[]);
+    await client.query(`RELEASE SAVEPOINT ${sp}`);
+  } catch {
+    await client.query(`ROLLBACK TO SAVEPOINT ${sp}`);
+    await client.query(`RELEASE SAVEPOINT ${sp}`);
+  }
+}

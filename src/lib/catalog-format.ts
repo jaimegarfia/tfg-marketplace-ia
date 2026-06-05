@@ -40,11 +40,16 @@ export const MONEDA_CATALOGO = "EUR" as const;
 
 export function formatearPrecio(precio: number): string {
   if (precio === 0) return "Gratis";
+  return formatearImporte(precio);
+}
+
+/** Importe monetario acumulado (ingresos, facturación). Cero se muestra como 0 €. */
+export function formatearImporte(importe: number): string {
   return new Intl.NumberFormat("es-ES", {
     style: "currency",
     currency: MONEDA_CATALOGO,
     maximumFractionDigits: 0,
-  }).format(precio);
+  }).format(importe);
 }
 
 export function formatearRating(rating: number): string {
