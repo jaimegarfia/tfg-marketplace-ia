@@ -2,15 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { createPortal } from "react-dom";
-import {
-  History,
-  MessageSquare,
-  Package,
-  PencilLine,
-  Star,
-  Upload,
-  X,
-} from "lucide-react";
+import { History, MessageSquare, PencilLine, Star, X } from "lucide-react";
 import type { DeveloperAssetDetail } from "@/lib/developer-asset";
 import type { CategoriaAgente } from "@/types/database";
 import {
@@ -24,13 +16,9 @@ import { AuditBadge } from "@/components/audit-badge";
 import { AssetVisualThumbnail } from "@/components/developer/asset-visual-thumbnail";
 import {
   getAssetDetailAction,
-  submitAssetVersionAction,
   updateAssetAction,
 } from "@/app/developer/dashboard/actions";
-import {
-  CertificationOverlay,
-  runCertificationPhasesDuring,
-} from "@/components/developer/certification-overlay";
+import { AssetVersionTab } from "@/components/developer/asset-version-tab";
 
 type ManageTab = "ficha" | "version" | "valoraciones" | "auditorias";
 
@@ -40,20 +28,6 @@ const MANAGE_TABS: ReadonlyArray<{ id: ManageTab; label: string }> = [
   { id: "valoraciones", label: "Valoraciones" },
   { id: "auditorias", label: "Historial" },
 ];
-
-const DEFAULT_DESCRIPTOR = JSON.stringify(
-  {
-    workflow: {
-      engine: "n8n",
-      steps: [
-        { id: "validate", action: "schema.validate" },
-        { id: "execute", action: "llm.completion", model: "gpt-4o-mini" },
-      ],
-    },
-  },
-  null,
-  2,
-);
 
 const FIELD_CLASS =
   "w-full rounded-lg border border-neutral-800/80 bg-neutral-950/70 px-3 py-2.5 text-sm text-neutral-100 outline-none transition placeholder:text-neutral-600 focus:border-neutral-600 focus:ring-1 focus:ring-neutral-600 disabled:opacity-50";
@@ -104,17 +78,12 @@ export function AssetManageDrawer({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isAuditing, setIsAuditing] = useState(false);
-  const [phaseIndex, setPhaseIndex] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   const [descripcion, setDescripcion] = useState("");
   const [precioEur, setPrecioEur] = useState("0");
   const [categoria, setCategoria] = useState<CategoriaAgente>("automatizacion");
   const [imagenUrl, setImagenUrl] = useState("");
-
-  const [newVersion, setNewVersion] = useState("");
-  const [descriptor, setDescriptor] = useState(DEFAULT_DESCRIPTOR);
 
   const loadDetail = useCallback(async () => {
     setLoading(true);
@@ -132,7 +101,6 @@ export function AssetManageDrawer({
     setPrecioEur(String(data.precio_eur));
     setCategoria(data.categoria);
     setImagenUrl(data.imagen_url ?? "");
-    setNewVersion(bumpVersion(data.version));
     setLoading(false);
   }, [agenteId]);
 
@@ -172,54 +140,6 @@ export function AssetManageDrawer({
     onUpdated();
   };
 
-  const handleNewVersion = async (event: FormEvent) => {
-    event.preventDefault();
-    setError(null);
-    setSuccess(null);
-    setIsAuditing(true);
-    setPhaseIndex(0);
-
-    try {
-      let result:
-        | Awaited<ReturnType<typeof submitAssetVersionAction>>
-        | undefined;
-
-      await runCertificationPhasesDuring(setPhaseIndex, async () => {
-        result = await submitAssetVersionAction(agenteId, {
-          version: newVersion,
-          descriptorTecnico: descriptor,
-        });
-      });
-
-      if (!result) {
-        setError("No se recibió respuesta al certificar la versión.");
-        return;
-      }
-
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-
-      setSuccess(
-        result.result.resultadoGlobal
-          ? `Versión ${newVersion} certificada y publicada.`
-          : `Versión ${newVersion} rechazada por el sandbox. Revisa el historial.`,
-      );
-      await loadDetail();
-      onUpdated();
-      setActiveTab("auditorias");
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Error inesperado durante la auditoría.",
-      );
-    } finally {
-      setIsAuditing(false);
-    }
-  };
-
   if (!mounted) {
     return null;
   }
@@ -239,13 +159,13 @@ export function AssetManageDrawer({
         role="dialog"
         aria-modal="true"
         aria-label={detail ? `Gestionar ${detail.nombre}` : "Gestionar activo"}
-        className="
-          relative z-10 flex h-full w-full max-w-xl flex-col
+        className={`
+          relative z-10 flex h-full w-full flex-col
           border-l border-neutral-800/80 bg-[#0b0d10] shadow-2xl shadow-black/60
           animate-slide-in-right
-        "
+          ${activeTab === "version" ? "max-w-3xl" : "max-w-xl"}
+        `}
       >
-        {isAuditing && <CertificationOverlay phaseIndex={phaseIndex} />}
 
         <div className="relative border-b border-neutral-800/80 bg-gradient-to-b from-neutral-900/40 to-transparent px-5 py-5 sm:px-6">
           <button
@@ -373,7 +293,11 @@ export function AssetManageDrawer({
           })}
         </div>
 
-        <div className="drawer-scroll flex-1 overflow-y-auto px-5 py-5 sm:px-6">
+        <div
+          className={`drawer-scroll flex-1 overflow-y-auto px-5 py-5 sm:px-6 ${
+            activeTab === "auditorias" ? "flex flex-col min-h-0" : ""
+          }`}
+        >
           {loading && (
             <div className="flex flex-col items-center justify-center py-16">
               <span
@@ -514,56 +438,15 @@ export function AssetManageDrawer({
               )}
 
               {activeTab === "version" && (
-                <form onSubmit={handleNewVersion} className="space-y-4">
-                  <p className="text-sm leading-relaxed text-neutral-500">
-                    Sube una nueva versión del descriptor técnico. El activo pasará
-                    de nuevo por el sandbox Docker antes de actualizarse en el
-                    marketplace.
-                  </p>
-                  <div className="rounded-lg border border-neutral-800/60 bg-neutral-950/40 px-3 py-2.5 text-sm text-neutral-400">
-                    Versión actual:{" "}
-                    <span className="font-mono text-neutral-200">
-                      v{detail.version}
-                    </span>
-                  </div>
-                  <div>
-                    <label htmlFor="asset-ver" className={LABEL_CLASS}>
-                      Nueva versión
-                    </label>
-                    <input
-                      id="asset-ver"
-                      value={newVersion}
-                      disabled={isAuditing}
-                      onChange={(e) => setNewVersion(e.target.value)}
-                      placeholder="1.1.0"
-                      className={FIELD_CLASS}
-                    />
-                  </div>
-                  <div>
-                    <label htmlFor="asset-desc-json" className={LABEL_CLASS}>
-                      Descriptor técnico (JSON)
-                    </label>
-                    <textarea
-                      id="asset-desc-json"
-                      rows={10}
-                      spellCheck={false}
-                      value={descriptor}
-                      disabled={isAuditing}
-                      onChange={(e) => setDescriptor(e.target.value)}
-                      className={`${FIELD_CLASS} font-mono text-xs`}
-                    />
-                  </div>
-                  <button
-                    type="submit"
-                    disabled={isAuditing}
-                    className="inline-flex items-center gap-2 rounded-lg bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-white disabled:opacity-60"
-                  >
-                    <Upload size={14} strokeWidth={1.5} aria-hidden="true" />
-                    {isAuditing
-                      ? "Auditando..."
-                      : "Enviar a auditoría y actualizar"}
-                  </button>
-                </form>
+                <AssetVersionTab
+                  key={`${detail.id}-${detail.version}-${detail.hash_integridad ?? ""}`}
+                  detail={detail}
+                  onCompleted={async () => {
+                    await loadDetail();
+                    onUpdated();
+                  }}
+                  onViewHistory={() => setActiveTab("auditorias")}
+                />
               )}
 
               {activeTab === "valoraciones" && (
@@ -629,7 +512,7 @@ export function AssetManageDrawer({
               )}
 
               {activeTab === "auditorias" && (
-                <div className="space-y-3">
+                <div className="flex min-h-0 flex-1 flex-col gap-4">
                   {detail.auditHistory.length === 0 ? (
                     <div className="flex flex-col items-center rounded-xl border border-neutral-800/80 bg-neutral-950/30 py-12 text-center">
                       <History
@@ -642,12 +525,14 @@ export function AssetManageDrawer({
                       </p>
                     </div>
                   ) : (
-                    detail.auditHistory.map((audit) => (
+                    detail.auditHistory.map((audit, index) => (
                       <div
                         key={audit.id}
-                        className="rounded-xl border border-neutral-800/80 bg-[var(--surface)] p-4"
+                        className={`flex flex-col rounded-xl border border-neutral-800/80 bg-[var(--surface)] p-4 ${
+                          index === 0 ? "min-h-0 flex-1" : ""
+                        }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex shrink-0 items-center justify-between gap-2">
                           <span
                             className={`font-mono text-xs font-medium ${
                               audit.resultado_global
@@ -661,13 +546,18 @@ export function AssetManageDrawer({
                             {formatDate(audit.fecha_ejecucion)}
                           </span>
                         </div>
-                        <p className="mt-2 text-xs text-neutral-500">
+                        <p className="mt-2 shrink-0 text-xs text-neutral-500">
                           {audit.vulnerabilidades_detectadas} vulnerabilidades
                           detectadas
                         </p>
-                        <pre className="mt-3 max-h-32 overflow-auto rounded-lg border border-neutral-800/60 bg-neutral-950/50 p-3 font-mono text-[10px] leading-relaxed text-neutral-500">
-                          {audit.logs_sandbox.slice(0, 600)}
-                          {audit.logs_sandbox.length > 600 ? "…" : ""}
+                        <pre
+                          className={`mt-3 overflow-auto rounded-lg border border-neutral-800/60 bg-neutral-950/50 p-4 font-mono text-[11px] leading-relaxed text-neutral-400 ${
+                            index === 0
+                              ? "min-h-[min(22rem,calc(100dvh-18rem))] flex-1"
+                              : "min-h-48 max-h-80"
+                          }`}
+                        >
+                          {audit.logs_sandbox}
                         </pre>
                       </div>
                     ))
@@ -682,21 +572,4 @@ export function AssetManageDrawer({
   );
 
   return createPortal(panel, document.body);
-}
-
-function bumpVersion(current: string): string {
-  const parts = current.split(".").map((p) => Number.parseInt(p, 10));
-  if (parts.length === 3) {
-    const major = parts[0];
-    const minor = parts[1];
-    const patch = parts[2];
-    if (
-      Number.isFinite(major) &&
-      Number.isFinite(minor) &&
-      Number.isFinite(patch)
-    ) {
-      return `${major}.${minor}.${(patch as number) + 1}`;
-    }
-  }
-  return current;
 }

@@ -1,6 +1,7 @@
 import { query } from "@/lib/db";
 import { withTransaction } from "@/lib/db";
 import { runAuditEngine } from "@/lib/audit-engine";
+import { validateVersionIncrement } from "@/lib/version-utils";
 import type {
   ApprovedPermissions,
   CategoriaAgente,
@@ -34,6 +35,9 @@ export interface DeveloperAssetDetail {
   tipo_activo: TipoActivo;
   categoria: CategoriaAgente;
   imagen_url: string | null;
+  descriptor_tecnico: string | null;
+  guia_despliegue: string | null;
+  admite_adaptacion: boolean;
   rating_promedio: number;
   num_valoraciones: number;
   estado_auditoria: EstadoAuditoria;
@@ -206,7 +210,7 @@ export async function getDeveloperAssetDetail(
   developerId: string,
   agenteId: string,
 ): Promise<DeveloperAssetDetail | null> {
-  const rows = await query<{
+  let rows: Array<{
     id: string;
     nombre: string;
     descripcion: string;
@@ -215,6 +219,9 @@ export async function getDeveloperAssetDetail(
     tipo_activo: TipoActivo;
     categoria: CategoriaAgente;
     imagen_url: string | null;
+    descriptor_tecnico: string | null;
+    guia_despliegue: string | null;
+    admite_adaptacion: boolean | null;
     rating_promedio: string | number | null;
     num_valoraciones: number | null;
     estado_auditoria: EstadoAuditoria;
@@ -223,41 +230,93 @@ export async function getDeveloperAssetDetail(
     created_at: string;
     ventas_count: string | number | null;
     logs_sandbox: string | null;
-  }>(
-    `
-      SELECT
-        a.id::text AS id,
-        a.nombre,
-        a.descripcion,
-        a.version,
-        a.precio_eur,
-        a.tipo_activo,
-        a.categoria,
-        a.imagen_url,
-        a.rating_promedio,
-        a.num_valoraciones,
-        a.estado_auditoria,
-        a.hash_integridad,
-        a.firma_digital,
-        a.created_at::text AS created_at,
-        COALESCE((
-          SELECT COUNT(*)::int
-          FROM transacciones t
-          WHERE t.agente_id = $1::uuid AND t.estado_pago = 'completado'
-        ), 0) AS ventas_count,
-        (
-          SELECT au.logs_sandbox
-          FROM auditorias au
-          WHERE au.agente_id = $1::uuid
-          ORDER BY au.fecha_ejecucion DESC
-          LIMIT 1
-        ) AS logs_sandbox
-      FROM agentes a
-      WHERE a.id = $1::uuid AND a.desarrollador_id = $2::uuid
-      LIMIT 1
-    `,
-    [agenteId, developerId],
-  );
+  }>;
+
+  try {
+    rows = await query(
+      `
+        SELECT
+          a.id::text AS id,
+          a.nombre,
+          a.descripcion,
+          a.version,
+          a.precio_eur,
+          a.tipo_activo,
+          a.categoria,
+          a.imagen_url,
+          a.descriptor_tecnico,
+          a.guia_despliegue,
+          a.admite_adaptacion,
+          a.rating_promedio,
+          a.num_valoraciones,
+          a.estado_auditoria,
+          a.hash_integridad,
+          a.firma_digital,
+          a.created_at::text AS created_at,
+          COALESCE((
+            SELECT COUNT(*)::int
+            FROM transacciones t
+            WHERE t.agente_id = $1::uuid AND t.estado_pago = 'completado'
+          ), 0) AS ventas_count,
+          (
+            SELECT au.logs_sandbox
+            FROM auditorias au
+            WHERE au.agente_id = $1::uuid
+            ORDER BY au.fecha_ejecucion DESC
+            LIMIT 1
+          ) AS logs_sandbox
+        FROM agentes a
+        WHERE a.id = $1::uuid AND a.desarrollador_id = $2::uuid
+        LIMIT 1
+      `,
+      [agenteId, developerId],
+    );
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    if (
+      !message.includes("descriptor_tecnico") &&
+      !message.includes("guia_despliegue") &&
+      !message.includes("admite_adaptacion")
+    ) {
+      throw error;
+    }
+
+    rows = await query(
+      `
+        SELECT
+          a.id::text AS id,
+          a.nombre,
+          a.descripcion,
+          a.version,
+          a.precio_eur,
+          a.tipo_activo,
+          a.categoria,
+          a.imagen_url,
+          a.rating_promedio,
+          a.num_valoraciones,
+          a.estado_auditoria,
+          a.hash_integridad,
+          a.firma_digital,
+          a.created_at::text AS created_at,
+          COALESCE((
+            SELECT COUNT(*)::int
+            FROM transacciones t
+            WHERE t.agente_id = $1::uuid AND t.estado_pago = 'completado'
+          ), 0) AS ventas_count,
+          (
+            SELECT au.logs_sandbox
+            FROM auditorias au
+            WHERE au.agente_id = $1::uuid
+            ORDER BY au.fecha_ejecucion DESC
+            LIMIT 1
+          ) AS logs_sandbox
+        FROM agentes a
+        WHERE a.id = $1::uuid AND a.desarrollador_id = $2::uuid
+        LIMIT 1
+      `,
+      [agenteId, developerId],
+    );
+  }
 
   const row = rows[0];
   if (!row) return null;
@@ -310,6 +369,12 @@ export async function getDeveloperAssetDetail(
     tipo_activo: row.tipo_activo,
     categoria: row.categoria,
     imagen_url: row.imagen_url,
+    descriptor_tecnico:
+      "descriptor_tecnico" in row ? (row.descriptor_tecnico ?? null) : null,
+    guia_despliegue:
+      "guia_despliegue" in row ? (row.guia_despliegue ?? null) : null,
+    admite_adaptacion:
+      "admite_adaptacion" in row ? (row.admite_adaptacion ?? false) : false,
     rating_promedio: ratingPromedio,
     num_valoraciones: numValoraciones,
     estado_auditoria: row.estado_auditoria,
@@ -384,9 +449,19 @@ export async function updateDeveloperAsset(
 
 export function validateVersionInput(
   input: SubmitVersionInput,
+  currentVersion?: string,
 ): { ok: true } | { ok: false; error: string } {
   if (!input.version.trim()) {
     return { ok: false, error: "La versión es obligatoria." };
+  }
+  if (currentVersion?.trim()) {
+    const increment = validateVersionIncrement(
+      currentVersion,
+      input.version,
+    );
+    if (!increment.ok) {
+      return increment;
+    }
   }
   if (!input.descriptorTecnico.trim()) {
     return { ok: false, error: "El descriptor técnico es obligatorio." };
@@ -404,9 +479,13 @@ export async function submitDeveloperAssetVersion(
   agenteId: string,
   input: SubmitVersionInput,
 ): Promise<SubmitVersionResult | null> {
-  const existing = await query<{ nombre: string; tipo_activo: TipoActivo }>(
+  const existing = await query<{
+    nombre: string;
+    tipo_activo: TipoActivo;
+    version: string;
+  }>(
     `
-      SELECT nombre, tipo_activo
+      SELECT nombre, tipo_activo, version
       FROM agentes
       WHERE id = $1::uuid AND desarrollador_id = $2::uuid
       LIMIT 1
@@ -416,6 +495,11 @@ export async function submitDeveloperAssetVersion(
 
   const agent = existing[0];
   if (!agent) return null;
+
+  const versionValidation = validateVersionInput(input, agent.version);
+  if (!versionValidation.ok) {
+    throw new Error(versionValidation.error);
+  }
 
   let engine: Awaited<ReturnType<typeof runAuditEngine>>;
   try {
@@ -440,25 +524,68 @@ export async function submitDeveloperAssetVersion(
 
   try {
     await withTransaction(async (client) => {
-      await client.query(
-        `
-          UPDATE agentes
-          SET
-            version = $3,
-            estado_auditoria = $4,
-            hash_integridad = $5,
-            firma_digital = $6
-          WHERE id = $1::uuid AND desarrollador_id = $2::uuid
-        `,
-        [
-          agenteId,
-          developerId,
-          input.version.trim(),
-          estadoAuditoria,
-          engine.hash_integridad,
-          firmaDigital,
-        ],
-      );
+      if (engine.resultado_global) {
+        try {
+          await client.query(
+            `
+              UPDATE agentes
+              SET
+                version = $3,
+                descriptor_tecnico = $4,
+                estado_auditoria = $5,
+                hash_integridad = $6,
+                firma_digital = $7
+              WHERE id = $1::uuid AND desarrollador_id = $2::uuid
+            `,
+            [
+              agenteId,
+              developerId,
+              input.version.trim(),
+              input.descriptorTecnico.trim(),
+              estadoAuditoria,
+              engine.hash_integridad,
+              firmaDigital,
+            ],
+          );
+        } catch (updateError) {
+          const message =
+            updateError instanceof Error
+              ? updateError.message
+              : String(updateError);
+          if (!message.includes("descriptor_tecnico")) {
+            throw updateError;
+          }
+
+          await client.query(
+            `
+              UPDATE agentes
+              SET
+                version = $3,
+                estado_auditoria = $4,
+                hash_integridad = $5,
+                firma_digital = $6
+              WHERE id = $1::uuid AND desarrollador_id = $2::uuid
+            `,
+            [
+              agenteId,
+              developerId,
+              input.version.trim(),
+              estadoAuditoria,
+              engine.hash_integridad,
+              firmaDigital,
+            ],
+          );
+        }
+      } else {
+        await client.query(
+          `
+            UPDATE agentes
+            SET estado_auditoria = $3
+            WHERE id = $1::uuid AND desarrollador_id = $2::uuid
+          `,
+          [agenteId, developerId, estadoAuditoria],
+        );
+      }
 
       await client.query(
         `

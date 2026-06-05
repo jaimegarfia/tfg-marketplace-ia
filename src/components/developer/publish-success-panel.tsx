@@ -1,14 +1,20 @@
 "use client";
 
-import { CheckCircle2, LayoutGrid, PlusCircle } from "lucide-react";
+import { CheckCircle2, History, LayoutGrid, PlusCircle } from "lucide-react";
 import type { PublishAssetResult } from "@/lib/developer-publish";
 import { VerifiedPermissionsScope } from "@/components/verified-permissions-scope";
 
 interface PublishSuccessPanelProps {
   result: PublishAssetResult;
+  title?: string;
+  description?: string;
 }
 
-export function PublishSuccessPanel({ result }: PublishSuccessPanelProps) {
+export function PublishSuccessPanel({
+  result,
+  title = "Activo publicado con éxito",
+  description,
+}: PublishSuccessPanelProps) {
   return (
     <div className="space-y-5 rounded-xl border border-emerald-500/25 bg-emerald-500/[0.06] p-5 sm:p-6">
       <div className="flex items-start gap-3">
@@ -20,15 +26,19 @@ export function PublishSuccessPanel({ result }: PublishSuccessPanelProps) {
         />
         <div className="min-w-0 flex-1">
           <h3 className="text-lg font-semibold tracking-tight text-neutral-50">
-            Activo publicado con éxito
+            {title}
           </h3>
           <p className="mt-1 text-sm leading-relaxed text-neutral-400">
-            <strong className="font-medium text-neutral-200">
-              {result.nombre}
-            </strong>{" "}
-            ha superado la auditoría Zero Trust. Revisa los logs abajo y, a
-            continuación, documenta la guía de despliegue (obligatoria) para
-            publicar en el marketplace.
+            {description ?? (
+              <>
+                <strong className="font-medium text-neutral-200">
+                  {result.nombre}
+                </strong>{" "}
+                ha superado la auditoría Zero Trust. Revisa los logs abajo y, a
+                continuación, documenta la guía de despliegue (obligatoria) para
+                publicar en el marketplace.
+              </>
+            )}
           </p>
         </div>
       </div>
@@ -115,6 +125,37 @@ export function PublishSuccessActions({
       >
         <PlusCircle size={15} strokeWidth={1.5} aria-hidden="true" />
         Publicar otro activo
+      </button>
+    </div>
+  );
+}
+
+interface VersionSuccessActionsProps {
+  onViewHistory: () => void;
+  onNewUpdate: () => void;
+}
+
+export function VersionSuccessActions({
+  onViewHistory,
+  onNewUpdate,
+}: VersionSuccessActionsProps) {
+  return (
+    <div className="flex flex-wrap gap-3 rounded-xl border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
+      <button
+        type="button"
+        onClick={onViewHistory}
+        className="inline-flex items-center gap-2 rounded-lg bg-neutral-100 px-4 py-2.5 text-sm font-medium text-neutral-900 transition hover:bg-white"
+      >
+        <History size={15} strokeWidth={1.5} aria-hidden="true" />
+        Ver historial de auditorías
+      </button>
+      <button
+        type="button"
+        onClick={onNewUpdate}
+        className="inline-flex items-center gap-2 rounded-lg border border-neutral-600 px-4 py-2.5 text-sm font-medium text-neutral-200 transition hover:border-neutral-500 hover:bg-neutral-900"
+      >
+        <PlusCircle size={15} strokeWidth={1.5} aria-hidden="true" />
+        Publicar otra actualización
       </button>
     </div>
   );

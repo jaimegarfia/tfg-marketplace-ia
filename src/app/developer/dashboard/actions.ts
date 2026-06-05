@@ -19,7 +19,6 @@ import {
   submitDeveloperAssetVersion,
   updateDeveloperAsset,
   validateUpdateAssetInput,
-  validateVersionInput,
   type DeveloperAssetDetail,
   type SubmitVersionResult,
   type UpdateAssetInput,
@@ -301,11 +300,6 @@ export async function submitAssetVersionAction(
 > {
   const session = await resolveSessionDeveloper();
   if (!session.ok) return session;
-
-  const validation = validateVersionInput(input);
-  if (!validation.ok) {
-    return { ok: false, error: validation.error };
-  }
 
   try {
     const result = await submitDeveloperAssetVersion(

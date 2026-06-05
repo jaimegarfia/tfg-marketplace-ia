@@ -142,7 +142,7 @@ async function insertAuditedAsset(
     ? `sig_ed25519_${slugify(input.nombre)}`
     : null;
 
-  const params = [
+  const baseParams = [
     input.developerId,
     input.nombre.trim(),
     input.descripcion.trim(),
@@ -154,27 +154,32 @@ async function insertAuditedAsset(
     engine.estadoAuditoria,
     engine.hash_integridad,
     firmaDigital,
-    input.admiteAdaptacion,
   ];
+  const descriptorTecnico = input.descriptorTecnico.trim();
 
-  try {
-    const inserted = await client.query<{ id: string }>(
-      `
+  const insertAttempts: Array<{ sql: string; values: unknown[] }> = [
+    {
+      sql: `
         INSERT INTO agentes (
-          desarrollador_id,
-          nombre,
-          descripcion,
-          version,
-          precio_eur,
-          tipo_activo,
-          categoria,
-          imagen_url,
-          rating_promedio,
-          num_valoraciones,
-          estado_auditoria,
-          hash_integridad,
-          firma_digital,
-          admite_adaptacion
+          desarrollador_id, nombre, descripcion, version, precio_eur,
+          tipo_activo, categoria, imagen_url, rating_promedio, num_valoraciones,
+          estado_auditoria, hash_integridad, firma_digital,
+          descriptor_tecnico, admite_adaptacion
+        )
+        VALUES (
+          $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
+          $8, 0, 0, $9, $10, $11, $12, $13
+        )
+        RETURNING id::text AS id
+      `,
+      values: [...baseParams, descriptorTecnico, input.admiteAdaptacion],
+    },
+    {
+      sql: `
+        INSERT INTO agentes (
+          desarrollador_id, nombre, descripcion, version, precio_eur,
+          tipo_activo, categoria, imagen_url, rating_promedio, num_valoraciones,
+          estado_auditoria, hash_integridad, firma_digital, admite_adaptacion
         )
         VALUES (
           $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
@@ -182,35 +187,14 @@ async function insertAuditedAsset(
         )
         RETURNING id::text AS id
       `,
-      params,
-    );
-    const id = inserted.rows[0]?.id;
-    if (!id) {
-      throw new Error("No se pudo registrar el activo en el catálogo.");
-    }
-    return id;
-  } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    if (!message.includes("admite_adaptacion")) {
-      throw error;
-    }
-
-    const inserted = await client.query<{ id: string }>(
-      `
+      values: [...baseParams, input.admiteAdaptacion],
+    },
+    {
+      sql: `
         INSERT INTO agentes (
-          desarrollador_id,
-          nombre,
-          descripcion,
-          version,
-          precio_eur,
-          tipo_activo,
-          categoria,
-          imagen_url,
-          rating_promedio,
-          num_valoraciones,
-          estado_auditoria,
-          hash_integridad,
-          firma_digital
+          desarrollador_id, nombre, descripcion, version, precio_eur,
+          tipo_activo, categoria, imagen_url, rating_promedio, num_valoraciones,
+          estado_auditoria, hash_integridad, firma_digital
         )
         VALUES (
           $1::uuid, $2, $3, $4, $5, $6, $7::categoria_agente,
@@ -218,14 +202,37 @@ async function insertAuditedAsset(
         )
         RETURNING id::text AS id
       `,
-      params.slice(0, 11),
-    );
-    const id = inserted.rows[0]?.id;
-    if (!id) {
-      throw new Error("No se pudo registrar el activo en el catálogo.");
+      values: baseParams,
+    },
+  ];
+
+  let lastError: unknown;
+  for (const attempt of insertAttempts) {
+    try {
+      const inserted = await client.query<{ id: string }>(
+        attempt.sql,
+        attempt.values,
+      );
+      const id = inserted.rows[0]?.id;
+      if (!id) {
+        throw new Error("No se pudo registrar el activo en el catálogo.");
+      }
+      return id;
+    } catch (error) {
+      lastError = error;
+      const message = error instanceof Error ? error.message : String(error);
+      if (
+        !message.includes("descriptor_tecnico") &&
+        !message.includes("admite_adaptacion")
+      ) {
+        throw error;
+      }
     }
-    return id;
   }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("No se pudo registrar el activo en el catálogo.");
 }
 
 async function insertAuditoria(

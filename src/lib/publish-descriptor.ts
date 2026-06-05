@@ -1,5 +1,102 @@
 import type { TipoActivo } from "@/types/database";
 
+export const DEFAULT_FLOW_DESCRIPTOR = JSON.stringify(
+  {
+    workflow: {
+      engine: "n8n",
+      steps: [
+        {
+          id: "fetch-context",
+          action: "fetch",
+          endpoint: "https://api.example.com/context",
+        },
+        { id: "summarize", action: "llm.completion", model: "gpt-4o-mini" },
+      ],
+    },
+  },
+  null,
+  2,
+);
+
+export const DEFAULT_MANIFEST_JSON = JSON.stringify(
+  {
+    env: {
+      CERTIA_AGENT_ID: "",
+      LOG_LEVEL: "info",
+    },
+    resources: {
+      memory: "128m",
+      cpus: "0.5",
+    },
+  },
+  null,
+  2,
+);
+
+export interface ParsedPublishConfigFields {
+  flowDescriptor: string;
+  imageRegistryUri: string;
+  manifestJson: string;
+}
+
+export function parseStoredDescriptorToFields(
+  tipoActivo: TipoActivo,
+  descriptorTecnico: string | null | undefined,
+): ParsedPublishConfigFields {
+  if (!descriptorTecnico?.trim()) {
+    return {
+      flowDescriptor: DEFAULT_FLOW_DESCRIPTOR,
+      imageRegistryUri: "",
+      manifestJson: DEFAULT_MANIFEST_JSON,
+    };
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(descriptorTecnico);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("invalid");
+    }
+
+    if (tipoActivo === "runtime_artifact") {
+      const record = parsed as Record<string, unknown>;
+      const uri =
+        typeof record.image_registry_uri === "string"
+          ? record.image_registry_uri
+          : "";
+      const manifest =
+        record.manifest && typeof record.manifest === "object"
+          ? JSON.stringify(record.manifest, null, 2)
+          : DEFAULT_MANIFEST_JSON;
+
+      return {
+        flowDescriptor: DEFAULT_FLOW_DESCRIPTOR,
+        imageRegistryUri: uri,
+        manifestJson: manifest,
+      };
+    }
+
+    return {
+      flowDescriptor: JSON.stringify(parsed, null, 2),
+      imageRegistryUri: "",
+      manifestJson: DEFAULT_MANIFEST_JSON,
+    };
+  } catch {
+    if (tipoActivo === "reference_architecture") {
+      return {
+        flowDescriptor: descriptorTecnico.trim(),
+        imageRegistryUri: "",
+        manifestJson: DEFAULT_MANIFEST_JSON,
+      };
+    }
+
+    return {
+      flowDescriptor: DEFAULT_FLOW_DESCRIPTOR,
+      imageRegistryUri: "",
+      manifestJson: DEFAULT_MANIFEST_JSON,
+    };
+  }
+}
+
 export function formatJsonString(text: string): string {
   return JSON.stringify(JSON.parse(text), null, 2);
 }

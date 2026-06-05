@@ -6,9 +6,10 @@ import { useCallback, useState } from "react";
 interface CodeBlockProps {
   code: string;
   label?: string;
+  className?: string;
 }
 
-export function CodeBlock({ code, label }: CodeBlockProps) {
+export function CodeBlock({ code, label, className = "" }: CodeBlockProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = useCallback(async () => {
@@ -22,7 +23,9 @@ export function CodeBlock({ code, label }: CodeBlockProps) {
   }, [code]);
 
   return (
-    <div className="overflow-hidden rounded-lg border border-neutral-800/60 bg-neutral-950/80">
+    <div
+      className={`overflow-hidden rounded-lg border border-neutral-800/60 bg-neutral-950/80 ${className}`.trim()}
+    >
       <div className="flex items-center justify-between border-b border-neutral-800/60 px-3 py-2">
         <span className="font-mono text-[10px] uppercase tracking-widest text-neutral-500">
           {label ?? "Comando"}

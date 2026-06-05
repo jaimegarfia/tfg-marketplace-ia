@@ -10,7 +10,9 @@ import {
   ArrowUpRight,
   Download,
   Lock,
+  ScrollText,
   Server,
+  Terminal,
   Workflow,
   type LucideIcon,
 } from "lucide-react";
@@ -25,6 +27,7 @@ import { useAuth } from "@/context/auth-context";
 import type { ApprovedPermissions } from "@/lib/audit-engine";
 import { isApprovedPermissions } from "@/lib/audit-catalog";
 import { CodeBlock } from "@/components/drawer/code-block";
+import { DeveloperGuideMarkdown } from "@/components/drawer/developer-guide-markdown";
 import { buildDeploymentGuide } from "@/lib/deployment-guide";
 
 /* ── Tabs ───────────────────────────────────────────────────────────── */
@@ -295,68 +298,110 @@ function DeploymentGuideTab({ agente, permisos }: DeploymentGuideTabProps) {
       : "text-sky-400/80";
 
   return (
-    <div className="space-y-5">
-      {developerGuia && (
-        <section className="rounded-lg border border-emerald-500/15 bg-emerald-500/[0.04] p-4">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-emerald-400/80">
-            Instrucciones del desarrollador
-          </p>
-          <div className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">
-            {developerGuia}
+    <div className="space-y-0">
+      <section className="space-y-7">
+        <div>
+          <div className="flex items-center gap-2">
+            <Terminal
+              size={12}
+              strokeWidth={1.25}
+              className="shrink-0 text-neutral-500"
+              aria-hidden="true"
+            />
+            <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+              Configuración de Infraestructura Automatizada
+            </h3>
           </div>
-        </section>
-      )}
-
-      <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-        Referencia técnica Certia
-      </p>
-
-      <div className="flex items-start gap-3">
-        <HeaderIcon
-          size={16}
-          strokeWidth={1.25}
-          className={`mt-0.5 shrink-0 ${iconClass}`}
-          aria-hidden="true"
-        />
-        <div className="space-y-2">
-          <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
-            {guide.variant === "runtime_artifact"
-              ? "Artefacto ejecutable"
-              : "Arquitectura de referencia"}{" "}
-            · {agente.categoria}
-          </p>
-          <h3 className="text-sm font-medium text-neutral-200">{guide.title}</h3>
-          <p className="text-sm leading-relaxed text-neutral-400">
-            {guide.description}
+          <p className="mt-3 text-sm leading-relaxed text-neutral-400">
+            Comandos y variables generados por Certia a partir del manifiesto
+            técnico y los permisos certificados del activo.
           </p>
         </div>
-      </div>
 
-      {guide.steps.length > 0 && (
-        <ol className="list-decimal space-y-2 pl-5 text-sm leading-relaxed text-neutral-400">
-          {guide.steps.map((step) => (
-            <li key={step}>{step}</li>
-          ))}
-        </ol>
-      )}
+        <div className="flex items-start gap-3.5 rounded-lg border border-neutral-800/60 bg-neutral-950/40 p-4">
+          <HeaderIcon
+            size={16}
+            strokeWidth={1.25}
+            className={`mt-0.5 shrink-0 ${iconClass}`}
+            aria-hidden="true"
+          />
+          <div className="min-w-0 space-y-2">
+            <p className="font-mono text-[10px] uppercase tracking-widest text-neutral-600">
+              {guide.variant === "runtime_artifact"
+                ? "Artefacto ejecutable"
+                : "Arquitectura de referencia"}{" "}
+              · {agente.categoria}
+            </p>
+            <p className="text-sm font-medium text-neutral-200">{guide.title}</p>
+            <p className="text-sm leading-relaxed text-neutral-400">
+              {guide.description}
+            </p>
+          </div>
+        </div>
 
-      <CodeBlock
-        code={guide.primaryBlock.code}
-        label={guide.primaryBlock.label}
-      />
+        {guide.steps.length > 0 && (
+          <ol className="list-decimal space-y-2.5 pl-5 text-sm leading-relaxed text-neutral-400">
+            {guide.steps.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+        )}
 
-      {guide.secondaryBlock && (
-        <CodeBlock
-          code={guide.secondaryBlock.code}
-          label={guide.secondaryBlock.label}
-        />
-      )}
+        <div className="space-y-8">
+          <CodeBlock
+            code={guide.primaryBlock.code}
+            label={guide.primaryBlock.label}
+          />
 
-      <ul className="space-y-2 text-xs leading-relaxed text-neutral-500">
-        {guide.notes.map((note) => (
-          <li key={note}>{note}</li>
-        ))}
-      </ul>
+          {guide.secondaryBlock && (
+            <CodeBlock
+              code={guide.secondaryBlock.code}
+              label={guide.secondaryBlock.label}
+            />
+          )}
+        </div>
+
+        {guide.notes.length > 0 && (
+          <ul className="mt-2 space-y-2.5 rounded-lg border border-neutral-800/50 bg-neutral-950/30 px-4 py-4 text-xs leading-relaxed text-neutral-500">
+            {guide.notes.map((note) => (
+              <li key={note} className="flex gap-2">
+                <span className="text-neutral-600" aria-hidden="true">
+                  ·
+                </span>
+                <span>{note}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      {developerGuia ? (
+        <div className="mt-14 border-t border-neutral-800/80 pt-12">
+          <section className="space-y-7">
+            <div>
+              <div className="flex items-center gap-2">
+                <ScrollText
+                  size={12}
+                  strokeWidth={1.25}
+                  className="shrink-0 text-neutral-500"
+                  aria-hidden="true"
+                />
+                <h3 className="font-mono text-xs uppercase tracking-widest text-neutral-500">
+                  Documentación Adicional del Desarrollador
+                </h3>
+              </div>
+              <p className="mt-4 text-sm leading-relaxed text-neutral-400">
+                Pasos operativos, credenciales internas y procedimientos
+                específicos aportados por quien publicó el activo.
+              </p>
+            </div>
+
+            <div className="rounded-lg border border-neutral-800/60 bg-neutral-950/30 p-5">
+              <DeveloperGuideMarkdown content={developerGuia} />
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
