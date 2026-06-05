@@ -1,6 +1,6 @@
 import type { PoolClient } from "@neondatabase/serverless";
 import { withTransaction } from "@/lib/db";
-import { runSimulatedAuditEngine } from "@/lib/audit-engine";
+import { runAuditEngine } from "@/lib/audit-engine";
 import {
   isAssetVisualIconId,
   type AssetVisualIconId,
@@ -270,11 +270,12 @@ async function insertAuditoria(
 export async function publishDeveloperAsset(
   input: PublishAssetInput,
 ): Promise<PublishAssetResult> {
-  let engine: Awaited<ReturnType<typeof runSimulatedAuditEngine>>;
+  let engine: Awaited<ReturnType<typeof runAuditEngine>>;
   try {
-    engine = await runSimulatedAuditEngine({
+    engine = await runAuditEngine({
       assetName: input.nombre,
       assetDescriptor: input.descriptorTecnico,
+      tipoActivo: input.tipoActivo,
     });
   } catch (error) {
     const detail =

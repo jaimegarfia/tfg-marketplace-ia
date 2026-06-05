@@ -18,10 +18,22 @@ AUTH_SECRET=
 
 ## Sandbox Docker (auditoría al publicar)
 
-La publicación de activos ejecuta `docker run` con la imagen `certia-sandbox`. En Windows necesitas **Docker Desktop** en ejecución (estado «Running»).
+Necesitas **Docker Desktop** en ejecución (estado «Running»).
+
+### Workflows (`reference_architecture`)
+
+Escaneo estático del JSON del flujo con la imagen local `certia-sandbox`:
 
 ```bash
 npm run sandbox:build
+```
+
+### Contenedores (`runtime_artifact`)
+
+Escaneo real de capas con **Trivy** (se descarga `aquasec/trivy:latest` en el primer uso). El daemon Docker debe poder acceder al registro donde está la imagen declarada en `image_registry_uri`.
+
+```bash
+docker pull aquasec/trivy:latest
 ```
 
 Si ves errores del tipo `docker_engine` o `docker daemon is not running`, abre Docker Desktop y reintenta la auditoría.

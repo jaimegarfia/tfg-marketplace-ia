@@ -1,6 +1,6 @@
 import { query } from "@/lib/db";
 import { withTransaction } from "@/lib/db";
-import { runSimulatedAuditEngine } from "@/lib/audit-engine";
+import { runAuditEngine } from "@/lib/audit-engine";
 import type {
   ApprovedPermissions,
   CategoriaAgente,
@@ -404,9 +404,9 @@ export async function submitDeveloperAssetVersion(
   agenteId: string,
   input: SubmitVersionInput,
 ): Promise<SubmitVersionResult | null> {
-  const existing = await query<{ nombre: string }>(
+  const existing = await query<{ nombre: string; tipo_activo: TipoActivo }>(
     `
-      SELECT nombre
+      SELECT nombre, tipo_activo
       FROM agentes
       WHERE id = $1::uuid AND desarrollador_id = $2::uuid
       LIMIT 1
@@ -417,11 +417,12 @@ export async function submitDeveloperAssetVersion(
   const agent = existing[0];
   if (!agent) return null;
 
-  let engine: Awaited<ReturnType<typeof runSimulatedAuditEngine>>;
+  let engine: Awaited<ReturnType<typeof runAuditEngine>>;
   try {
-    engine = await runSimulatedAuditEngine({
+    engine = await runAuditEngine({
       assetName: agent.nombre,
       assetDescriptor: input.descriptorTecnico,
+      tipoActivo: agent.tipo_activo,
     });
   } catch (error) {
     const detail =

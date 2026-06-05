@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { runSimulatedAuditEngine } from "@/lib/audit-engine";
+import { runAuditEngine } from "@/lib/audit-engine";
 
 export const runtime = "nodejs";
 
@@ -58,10 +58,11 @@ export async function POST(request: Request) {
     };
 
   try {
-    const result = await runSimulatedAuditEngine({
+    const result = await runAuditEngine({
       assetId: body.assetId,
       assetName: body.assetName ?? "Timeout Probe Asset",
       assetDescriptor: JSON.stringify(descriptor),
+      tipoActivo: "reference_architecture",
     });
 
     return NextResponse.json({

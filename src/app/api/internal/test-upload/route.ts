@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { PoolClient } from "@neondatabase/serverless";
-import { runSimulatedAuditEngine } from "@/lib/audit-engine";
+import { runAuditEngine } from "@/lib/audit-engine";
 import { withTransaction } from "@/lib/db";
 import type { EstadoAuditoria, ResultadoAuditoria, TipoActivo } from "@/types/database";
 
@@ -218,9 +218,10 @@ async function insertAuditoriaCompat(
 }
 
 async function persistAuditedAsset(payload: UploadPayload): Promise<InsertResult> {
-  const engine = await runSimulatedAuditEngine({
+  const engine = await runAuditEngine({
     assetName: payload.nombre,
     assetDescriptor: payload.descriptor_tecnico,
+    tipoActivo: payload.tipo_activo,
   });
 
   const estadoAuditoria = mapEstadoAuditoria(engine.resultado_global);
